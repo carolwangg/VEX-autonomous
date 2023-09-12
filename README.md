@@ -1,7 +1,11 @@
 # VEX-autonomous
-Autonomous programs for VEX team 4862A.
+Programs for VEX team 4862A.
 
-Includes:
+## Includes:
+Autonomous program with:
 Odometry
 Motion Profiling
 PID
+
+User control program with:
+Driving, catapult, expansion
