@@ -6,11 +6,11 @@ import urandom
 brain=Brain()
 
 # Robot configuration code
-frDrive = Motor(Ports.PORT1, GearSetting.RATIO_18_1, False)
-flDrive = Motor(Ports.PORT7, GearSetting.RATIO_18_1, False)
-brDrive = Motor(Ports.PORT8, GearSetting.RATIO_18_1, False)
-blDrive = Motor(Ports.PORT14, GearSetting.RATIO_18_1, False)
-catapult = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
+frDrive = Motor(Ports.PORT11, GearSetting.RATIO_18_1, True)
+flDrive = Motor(Ports.PORT20, GearSetting.RATIO_18_1, False)
+brDrive = Motor(Ports.PORT13, GearSetting.RATIO_18_1, True)
+blDrive = Motor(Ports.PORT18, GearSetting.RATIO_18_1, False)
+catapult = Motor(Ports.PORT1, GearSetting.RATIO_18_1, True)
 controller_1 = Controller(PRIMARY)
 digitaloutH = DigitalOut(brain.three_wire_port.h)
 
@@ -59,7 +59,7 @@ def user_control():
         fbSpeed = controller_1.axis3.position()
         lrSpeed = controller_1.axis4.position()
         #set velocities + braking
-        catapult.set_velocity(50, PERCENT)
+        catapult.set_velocity(75, PERCENT)
         catapult.set_stopping(COAST)
         #deadpan
         if fbSpeed >= -5 and fbSpeed <= 5:
@@ -77,10 +77,11 @@ def user_control():
             brDrive.set_velocity(fbSpeed-lrSpeed, PERCENT)
             blDrive.set_velocity(fbSpeed+lrSpeed, PERCENT)
             driveforward()
+            print(frDrive.velocity(PERCENT))
         else:
             drivecoast1()
         if controller_1.buttonA.pressing():
-            catapult()
+            catapultgo()
         elif controller_1.buttonB.pressing():
             catapultstop()
         if controller_1.buttonRight.pressing():
@@ -145,7 +146,7 @@ def drivecoast1():
     flDrive.stop()   
     wait(75, MSEC)
     drivesetstop(BRAKE)
-def catapult():
+def catapultgo():
     #might have to change function if want fast throw but stopping to allow for putting on acorns
     catapult.spin(FORWARD)
 def catapultstop():
@@ -174,3 +175,6 @@ def turnleftpercent(userinput):
     flDrive.spin(REVERSE)
     blDrive.spin(REVERSE)
     brDrive.spin(FORWARD)
+
+comp = Competition(user_control, autonomous)
+pre_autonomous()
