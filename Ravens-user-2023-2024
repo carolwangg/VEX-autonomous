@@ -1,0 +1,176 @@
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+frDrive = Motor(Ports.PORT1, GearSetting.RATIO_18_1, False)
+flDrive = Motor(Ports.PORT7, GearSetting.RATIO_18_1, False)
+brDrive = Motor(Ports.PORT8, GearSetting.RATIO_18_1, False)
+blDrive = Motor(Ports.PORT14, GearSetting.RATIO_18_1, False)
+catapult = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
+controller_1 = Controller(PRIMARY)
+digitaloutH = DigitalOut(brain.three_wire_port.h)
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:      VEXcode Project
+#	Author:       VEX
+#	Created:
+#	Description:  VEXcode V5 Python Project
+# 
+# ------------------------------------------
+
+# Library imports
+from vex import *
+brain.screen.print("Ravens <3")
+
+def pre_autonomous():
+    brain.screen.clear_screen()
+    brain.screen.print("pre-autonomous")
+def autonomous():
+    brain.screen.clear_screen()
+    brain.screen.print("autonomous")
+def user_control():
+    brain.screen.clear_screen()
+    brain.screen.print("driver control")
+    while 1:
+        #set variables
+        fbSpeed = controller_1.axis3.position()
+        lrSpeed = controller_1.axis4.position()
+        #set velocities + braking
+        catapult.set_velocity(50, PERCENT)
+        catapult.set_stopping(COAST)
+        #deadpan
+        if fbSpeed >= -5 and fbSpeed <= 5:
+            fbSpeed = 0
+        if lrSpeed >= -10 and lrSpeed <= 10:
+            lrSpeed = 0
+        if fbSpeed != 0 or lrSpeed != 0:
+            #-30 percent
+            #if controller_1.buttonRight.pressing():
+                #turn at a slower speed
+            #    lrSpeed = coefficient(lrSpeed)*15
+            #    fbSpeed = coefficient(fbSpeed)*15
+            frDrive.set_velocity(fbSpeed-lrSpeed, PERCENT)
+            flDrive.set_velocity(fbSpeed+lrSpeed, PERCENT)
+            brDrive.set_velocity(fbSpeed-lrSpeed, PERCENT)
+            blDrive.set_velocity(fbSpeed+lrSpeed, PERCENT)
+            driveforward()
+        else:
+            drivecoast1()
+        if controller_1.buttonA.pressing():
+            catapult()
+        elif controller_1.buttonB.pressing():
+            catapultstop()
+        if controller_1.buttonRight.pressing():
+            expand()
+        elif controller_1.buttonLeft.pressing():
+            contract()
+        
+
+#FUNCTIONS
+#velocities
+def catapultvelocity(userinput):
+    catapult.set_velocity(userinput, RPM)
+def catapultpercent(userinput):
+    catapult.set_velocity(userinput, PERCENT)
+def flywheelsetstop(userinput):
+    catapult.set_stopping(userinput)
+def drivesetstop(userinput):
+    frDrive.set_stopping(userinput)
+    flDrive.set_stopping(userinput)
+    brDrive.set_stopping(userinput)
+    blDrive.set_stopping(userinput)
+def drivevelocity(userinput):
+    frDrive.set_velocity(userinput,RPM)
+    flDrive.set_velocity(userinput,RPM)
+    brDrive.set_velocity(userinput,RPM)
+    blDrive.set_velocity(userinput,RPM)
+#motions
+def driveforward():
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+def driveforwardvelocity(userinput):
+    #usually used to override previously determined global "drive velocity"
+    frDrive.set_velocity(userinput,RPM)
+    flDrive.set_velocity(userinput,RPM)
+    brDrive.set_velocity(userinput,RPM)
+    blDrive.set_velocity(userinput,RPM)
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+def driveforwardpercent(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+def drivestop():
+    frDrive.stop()
+    brDrive.stop()
+    blDrive.stop()
+    flDrive.stop()   
+def drivecoast1():
+    drivesetstop(COAST)
+    frDrive.stop()
+    brDrive.stop()
+    blDrive.stop()
+    flDrive.stop()   
+    wait(75, MSEC)
+    drivesetstop(BRAKE)
+def catapult():
+    #might have to change function if want fast throw but stopping to allow for putting on acorns
+    catapult.spin(FORWARD)
+def catapultstop():
+    catapult.stop()
+def expand():
+    digitaloutH.set(True)
+def contract():
+    digitaloutH.set(False)
+
+def turnrightpercent(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    frDrive.spin(REVERSE)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    brDrive.spin(REVERSE)
+
+def turnleftpercent(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    frDrive.spin(FORWARD)
+    flDrive.spin(REVERSE)
+    blDrive.spin(REVERSE)
+    brDrive.spin(FORWARD)
