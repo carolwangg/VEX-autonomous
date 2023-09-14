@@ -1,0 +1,965 @@
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+optical = Optical(Ports.PORT9)
+frDrive = Motor(Ports.PORT1, GearSetting.RATIO_18_1, False)
+brDrive = Motor(Ports.PORT10, GearSetting.RATIO_18_1, False)
+flDrive = Motor(Ports.PORT11, GearSetting.RATIO_18_1, True)
+blDrive = Motor(Ports.PORT20, GearSetting.RATIO_18_1, True)
+flywheel4 = Motor(Ports.PORT4, GearSetting.RATIO_18_1, False)
+intake = Motor(Ports.PORT13, GearSetting.RATIO_18_1, False)
+controller_1 = Controller(PRIMARY)
+inertial = Inertial(Ports.PORT8)
+trigger = Motor(Ports.PORT18, GearSetting.RATIO_18_1, False)
+distance = Distance(Ports.PORT17)
+digitaloutH = DigitalOut(brain.three_wire_port.h)
+roller = Motor(Ports.PORT6, GearSetting.RATIO_18_1, False)
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:
+#	Author:
+#	Created:
+#	Configuration:
+# 
+# ------------------------------------------
+
+# Library imports
+from vex import *
+#prints at very start of program
+brain.screen.print("Ravens <'3")
+
+#global vars, mostly for pre-auton
+autonValue = 1
+display = 0
+autonMax = 6
+autonMin = 0
+colour=False
+#red is true, blue is false
+x = 0
+#tracks number of triggers
+
+#not using derivative or integral in any pid rn, so these values don't matter(just there for future use)
+integraldistance = 0
+integralstraight = 0
+integralturn = 0
+integralflywheel = 0
+lasterrordistance = 0
+lasterrorstraight = 0
+lasterrorturn = 0
+lasterrorflywheel = 0
+leftpowerprev = 0
+prevresultflywheel = 0
+
+def pre_autonomous():
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1,1)
+    brain.screen.print("pre auton code")
+    wait(1, SECONDS)
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1,1)
+    inertial.calibrate()
+    controller_1.buttonUp.pressed(plusOne)
+    controller_1.buttonDown.pressed(minusOne)
+    controller_1.buttonX.pressed(autonSelected)
+
+def autonomous():
+    brain.screen.clear_screen()
+    brain.screen.print("auton code")
+    wait(1, SECONDS)
+    brain.screen.clear_screen()
+#set velocities
+    intake.set_velocity(45, RPM)
+    trigger.set_velocity(200, RPM)
+    drivesetstop(BRAKE)
+    drivevelocity(120)
+    print(inertial.heading(DEGREES))
+#choose auton value
+    if autonValue == 1:
+        auton1()
+    elif autonValue == 2:
+        auton2()
+    elif autonValue == 3:
+        auton3()
+    elif autonValue == 4:
+        auton4()
+    elif autonValue == 5:
+        auton5()
+    elif autonValue == 6:
+        testProgramming()
+    elif autonValue == 0:
+        noAuton()
+
+def auton1():
+    digitaloutH.set(True)
+    inertial.calibrate()
+    wait(2, SECONDS)
+    #start top right side of field
+    setpoint1 = frDrive.position(TURNS)+1.5
+    while piddrivepower1(setpoint1, frDrive.position(TURNS)) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, frDrive.position(TURNS)))
+        wait(50, MSEC)
+    drivestop()
+#print sensor
+#turn 90 degrees right
+    wait(500, MSEC)
+    curpos = inertial.heading(DEGREES)
+    if (curpos>300):
+        curpos = 0
+    while not(85<curpos<89):                                                                            
+        turnright(pidturnpower2(87, curpos))
+        curpos = inertial.heading(DEGREES)
+        if (curpos>355):
+            curpos = 0
+        wait(50, MSEC)
+    drivestop()
+    print("turn1 done")
+    print("current position = ", curpos)
+    start = distance.object_distance(MM) 
+    #subtraction values to reset turns to 0
+    reset1 = frDrive.position(TURNS)
+    reset2 = flDrive.position(TURNS)
+    #drive forward to hit wall
+    #drive to roller position
+
+    while piddrivepower2(122, distance.object_distance(MM)) is not 0:
+        driveforwardpercent(piddrivepower2(122, distance.object_distance(MM)))
+    drivestop()
+    print("drivestop230:", distance.object_distance(MM))
+    
+    roller.set_stopping(BRAKE)
+    roller.set_velocity(-24, PERCENT)
+    driveforwardpercent(7)
+    wait(600, MSEC)
+    roller.spin(FORWARD)
+    wait(0.5, SECONDS)
+    drivestop()
+    roller.stop() 
+    print("Rolled")
+
+    while piddrivepower2(150, distance.object_distance(MM)) is not 0:
+        driveforwardpercent(piddrivepower2(150, distance.object_distance(MM)))
+    drivestop()
+    print("drivestop230:", distance.object_distance(MM))
+
+    while not(103<curpos<105):                                                                            
+        turnright(pidturnpower2(104, curpos))
+        curpos = inertial.heading(DEGREES)
+        wait(50, MSEC)
+    drivestop()
+    print("currentshootposition:", curpos)
+
+    x=0
+    while flywheel4.velocity(PERCENT)<72.5:
+        flywheel4.spin(FORWARD, pidf(73.5, flywheel4.velocity(PERCENT)), VOLT)
+    while x<1:
+        flywheel4.spin(FORWARD, pidf(73.5, flywheel4.velocity(PERCENT)), VOLT)
+        print("flywheel speed:", flywheel4.velocity(PERCENT))
+        if flywheel4.velocity(PERCENT)>72.5:
+            digitaloutH.set(False)
+            #AT 150 WHEN CANISTER LOW AIR, OTHERWISE 300
+            wait(500,MSEC)
+            digitaloutH.set(True)
+            wait(500, MSEC)
+            print(flywheel4.velocity(PERCENT))
+            x+=1
+    flywheel4.stop()
+    
+def auton2():
+    inertial.heading(DEGREES)
+    inertial.calibrate()
+    wait(2, SECONDS)
+    curpos = inertial.heading(DEGREES)
+    drivesetstop(BRAKE)
+    if curpos>350:
+        curpos = 0
+    while not(8<curpos<12):                                                                            
+        turnright(pidturnpower2(10, curpos))
+        curpos = inertial.heading(DEGREES)
+        if curpos>350:
+            curpos = 0
+        wait(50, MSEC)
+        print("curpos:", curpos)
+    drivestop()
+
+def auton3():
+    #turn and shoot end code for auton 5
+    
+    flywheel4.set_velocity(61, PERCENT)
+    flywheel4.spin(FORWARD)
+
+    while not(318<inertial.heading(DEGREES)<320):
+        turnright(pidturnpower2(319, inertial.heading(DEGREES)))
+    drivestop()
+    print("turn to center done")
+
+    setpoint1 = frDrive.position(TURNS)-0.4
+    while frDrive.position(TURNS) < setpoint1:
+        driveforwardpercent(piddrivepower1(setpoint1, frDrive.position(TURNS)))
+        wait(50, MSEC)
+    drivestop()
+    print("drive and intake disks")
+
+    intake.stop()
+
+def auton4():
+    digitaloutH.set(True)
+    inertial.calibrate()
+    wait(2, SECONDS)
+    drivesetstop(BRAKE)
+    roller.set_stopping(BRAKE)
+    roller.set_velocity(-24, PERCENT)
+    driveforwardpercent(7)
+    wait(1, SECONDS)
+    roller.spin(FORWARD)
+    wait(0.5, SECONDS)
+    drivestop()
+    roller.stop() 
+    print("Rolled")
+
+    while piddrivepower2(150, distance.object_distance(MM)) is not 0:
+        driveforwardpercent(piddrivepower2(150, distance.object_distance(MM)))
+    drivestop()
+    print("drivestop230:", distance.object_distance(MM))
+
+    curpos = inertial.heading(DEGREES)
+    if (curpos>350):
+        curpos = 0
+    while not(4<curpos<6):                                                                            
+        turnright(pidturnpower2(5, curpos))
+        curpos = inertial.heading(DEGREES)
+        if (curpos>350):
+            curpos = 0
+        wait(50, MSEC)
+        print("curpos:", curpos)
+    drivestop()
+    x=0
+    while flywheel4.velocity(PERCENT)<72:
+        flywheel4.spin(FORWARD, pidf(72, flywheel4.velocity(PERCENT)), VOLT)
+    while x<2:
+        flywheel4.spin(FORWARD, pidf(73, flywheel4.velocity(PERCENT)), VOLT)
+        print("flywheel speed:", flywheel4.velocity(PERCENT))
+        if flywheel4.velocity(PERCENT)>72:
+            digitaloutH.set(False)
+            #AT 150 WHEN CANISTER LOW AIR, OTHERWISE 300
+            wait(450,MSEC)
+            digitaloutH.set(True)
+            wait(250, MSEC)
+            print(flywheel4.velocity(PERCENT))
+            x+=1
+    flywheel4.stop()
+
+def auton5():
+
+
+    curpos = inertial.heading(DEGREES)
+    if (curpos>300):
+        curpos = 0
+    while not(85<curpos<89):                                                                            
+        turnright(pidturnpower2(87, curpos))
+        curpos = inertial.heading(DEGREES)
+        if (curpos>355):
+            curpos = 0
+        wait(50, MSEC)
+    drivestop()
+    
+    while distance.object_distance(MM) <230:
+        driveforwardpercent(piddrivepower2(230, distance.object_distance(MM)))
+    drivestop()
+    print("drivestop230:", distance.object_distance(MM))
+
+    #230<x<233 before
+    while not(238<inertial.heading(DEGREES)<242):
+        turnright(pidturnpower2(240, inertial.heading(DEGREES)))
+    drivestop()
+    print("turn to disks done")
+    
+    setpoint1 = frDrive.position(TURNS)+2.5
+    while frDrive.position(TURNS) < setpoint1:
+        driveforwardpercent(80)
+        wait(50, MSEC)
+    drivestop()
+    print("drive and intake disks")
+    
+    wait(1, SECONDS)
+
+    intake.spin(FORWARD)
+    intake.set_velocity(-200, RPM)
+
+    setpoint1 = frDrive.position(TURNS)+0.45
+    while piddrivepower1(setpoint1, frDrive.position(TURNS)) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, frDrive.position(TURNS)))
+        wait(50, MSEC)
+    drivestop()
+    print("drive and intake disks")
+
+    #230<x<233 before
+    while not(305<inertial.heading(DEGREES)<309):
+        turnright(pidturnpower2(307, inertial.heading(DEGREES)))
+    drivestop()
+    print("turn to center done")
+
+    setpoint1 = frDrive.position(TURNS)-0.5
+    while piddrivepower1(setpoint1, frDrive.position(TURNS)) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, frDrive.position(TURNS)))
+        wait(50, MSEC)
+    drivestop()
+    print("drive and intake disks")
+
+    intake.stop()
+    x=0
+
+    while x<3:
+        flywheel4.spin(FORWARD, pidf(60, flywheel4.velocity(PERCENT)), VOLT)
+        print("flywheel speed:", flywheel4.velocity(PERCENT))
+        if 58>flywheel4.velocity(PERCENT)>62:
+            digitaloutH.set(False)
+            #AT 150 WHEN CANISTER LOW AIR, OTHERWISE 300
+            wait(450,MSEC)
+            digitaloutH.set(True)
+            wait(250, MSEC)
+            print(flywheel4.velocity(PERCENT))
+            x+=1
+    flywheel4.stop()
+
+#auton5
+    inertial.calibrate()
+    wait(2, SECONDS)
+    drivesetstop(BRAKE)
+    
+    digitaloutH.set(True)
+    flywheel4.set_velocity(64.6,PERCENT)
+    flywheel4.spin(FORWARD)
+    x=0
+    while x<2:
+        #if 65.3>flywheel4.velocity(PERCENT)>64.3:
+
+        if 65.3>flywheel4.velocity(PERCENT)>64.4:
+            digitaloutH.set(False)
+            #AT 150 WHEN CANISTER LOW AIR, OTHERWISE 300
+            wait(450,MSEC)
+            digitaloutH.set(True)
+            wait(250, MSEC)
+            print(flywheel4.velocity(PERCENT))
+            x+=1
+        wait(100, MSEC)
+    flywheel4.stop()
+    #turn to roller
+
+    start = inertial.heading(DEGREES)
+    if (start<10):
+        start = 360
+    curpos = start
+
+    #to 354.5 before
+    while not(357.3<curpos<358.5):
+        turnright(pidturnpower2(357, curpos, start))
+        curpos = inertial.heading(DEGREES)
+        if (curpos<10):
+            curpos = 360
+    drivestop()
+    print("turn to roller done")
+
+    drivesetstop(BRAKE)
+    roller.set_stopping(BRAKE)
+    roller.set_velocity(-24, PERCENT)
+    driveforwardpercent(7)
+    wait(1, SECONDS)
+    roller.spin(FORWARD)
+    wait(0.5, SECONDS)
+    drivestop()
+    roller.stop()
+
+    start = inertial.heading(DEGREES)
+    #230<x<233 before
+    while not(236<inertial.heading(DEGREES)<237):
+        turnright(pidturnpower2(236.5, inertial.heading(DEGREES), start))
+    drivestop()
+    print("turn to center done")
+
+    
+    start = frDrive.position(TURNS)
+    setpoint1 = frDrive.position(TURNS)+3.1
+    while frDrive.position(TURNS) < setpoint1:
+        driveforwardpercent(piddrivepower1(setpoint1, frDrive.position(TURNS), start))
+        wait(50, MSEC)
+    drivestop()
+    print("drive and intake disks")
+    intake.set_velocity(-200, RPM)
+    intake.spin(FORWARD)
+
+    start = frDrive.position(TURNS)
+    setpoint1 = frDrive.position(TURNS)+0.5
+    while frDrive.position(TURNS) < setpoint1:
+        driveforwardpercent(piddrivepower1(setpoint1, frDrive.position(TURNS), start))
+        wait(50, MSEC)
+    drivestop()
+    print("drive forward")
+
+    start = inertial.heading(DEGREES)
+    #230<x<233 before
+    while not(120<inertial.heading(DEGREES)<126):
+        turnright(pidturnpower2(123, inertial.heading(DEGREES), start))
+    drivestop()
+    print("turn to center done")
+
+    while x<3:
+        flywheel4.spin(FORWARD, pidf(60, flywheel4.velocity(PERCENT)), VOLT)
+        print("flywheel speed:", flywheel4.velocity(PERCENT))
+        if 58>flywheel4.velocity(PERCENT)>62:
+            digitaloutH.set(False)
+            #AT 150 WHEN CANISTER LOW AIR, OTHERWISE 300
+            wait(450,MSEC)
+            digitaloutH.set(True)
+            wait(250, MSEC)
+            print(flywheel4.velocity(PERCENT))
+            x+=1
+    flywheel4.stop()
+
+    
+def testProgramming():
+    #roll colour
+    intake.set_velocity(50, RPM)
+    intake.spin(FORWARD)
+    wait(500, MSEC)
+    while not(360<optical.hue()<=0 or 0<=optical.hue()<10):
+        optical.set_light(LedStateType.ON)
+        intake.spin(FORWARD)
+        wait(50, MSEC)
+        print(optical.hue())
+        driveforwardvelocity(5)
+        wait(500, MSEC)
+        drivestop()
+        wait(500, MSEC)
+    intake.stop()
+    optical.set_light(LedStateType.OFF)
+def noAuton():
+    wait(1, SECONDS)
+#usercontrol
+
+def user_control():
+
+    global integralflywheel
+    global lasterrorflywheel
+    global prevresultflywheel
+    flywheelclose = False
+    flywheelslow = False
+    flywheelfast = False
+    #0 is intake forward, 1 is flywheel forward
+    x = 0
+    #set things
+
+    flywheelsetstop(COAST)
+    trigger.stop()
+    controller_1.screen.print("o.0 hello user")
+    roller.set_stopping(BRAKE)
+
+    
+    trigger.set_velocity(20, RPM)
+    trigger.spin_for(REVERSE, 20, DEGREES)
+    while 1:
+        trigger.set_stopping(HOLD)
+        trigger.stop()
+        #print("flywheel velocity:", flywheel4.velocity(PERCENT))
+        #prints values
+        #print("inertial: ", inertial.heading(DEGREES))
+        #print("distance: ", distance.object_distance(MM))
+        #print("motor spins:", frDrive.position(TURNS))
+        brain.screen.clear_screen()
+        brain.screen.print("driver control")
+        
+        #fbSpeed = controller_1.axis3.position()**3/(100**2)
+        #lrSpeed = controller_1.axis4.position()**3/(100**2)
+        fbSpeed = controller_1.axis3.position()
+        lrSpeed = controller_1.axis4.position()
+
+        #set velocities
+        digitaloutH.set(True)
+
+        #deadpan
+        if fbSpeed >= -5 and fbSpeed <= 5:
+            fbSpeed = 0
+        if lrSpeed >= -10 and lrSpeed <= 10:
+            lrSpeed = 0
+        if fbSpeed != 0 or lrSpeed != 0:
+            #drive
+            #-30 percent thing?
+            #if controller_1.buttonRight.pressing():
+                #turn at a slower speed
+            #    lrSpeed = coefficient(lrSpeed)*15
+            #    fbSpeed = coefficient(fbSpeed)*15
+            frDrive.set_velocity(fbSpeed-lrSpeed, PERCENT)
+            flDrive.set_velocity(fbSpeed+lrSpeed, PERCENT)
+            brDrive.set_velocity(fbSpeed-lrSpeed, PERCENT)
+            blDrive.set_velocity(fbSpeed+lrSpeed, PERCENT)
+            driveforward()
+        else:
+            drivestop2()
+            #attempting brake for turn and coast function for front drive
+        if controller_1.buttonA.pressing():
+            #flywheel start
+            flywheelfast = True
+            flywheelslow = False
+            flywheelclose = False
+        elif controller_1.buttonX.pressing():
+            #flywheel start
+            flywheelslow = True
+            flywheelfast = False
+            flywheelclose = False
+        elif controller_1.buttonY.pressing():
+            #flywheel start
+            flywheelslow = False
+            flywheelfast = False
+            flywheelclose = True
+        elif controller_1.buttonB.pressing():
+            #flywheel stop
+            flywheel4.stop()
+            integralflywheel = 0
+            lasterrorflywheel = 0
+            prevresultflywheel = 0
+            flywheelfast = False
+            flywheelslow = False
+            flywheelclose = False
+        if controller_1.buttonL1.pressing():
+            intake.set_velocity(-200, RPM)
+            intake.spin(FORWARD)
+        elif controller_1.buttonL2.pressing():
+            intake.set_velocity(200, RPM)
+            roller.set_velocity(200, RPM)
+            roller.spin(FORWARD)
+            intake.spin(FORWARD)
+        elif controller_1.buttonR2.pressing():
+            roller.set_velocity(-160, RPM)
+            roller.spin(FORWARD)
+        else:
+            intake.stop()
+            roller.stop()
+        if controller_1.buttonRight.pressing():
+            trigger.set_velocity(30, PERCENT)
+            trigger.spin_for(REVERSE, 120, DEGREES)
+            trigger.set_velocity(100, PERCENT)
+            trigger.spin(FORWARD)
+            wait(1, SECONDS)
+        if controller_1.buttonR1.pressing():
+            digitaloutH.set(False)
+            #AT 150 WHEN CANISTER LOW AIR, OTHERWISE 300
+            wait(450-(3*x), MSEC)
+            digitaloutH.set(True)
+            wait(450-(3*x), MSEC)
+            x+=1
+        if 60>flywheel4.velocity(PERCENT) > 57:
+            controller_1.rumble("- - -")
+        if 70>flywheel4.velocity(PERCENT) > 68:
+            controller_1.rumble("......")
+        if x==48:
+            controller_1.rumble("--")
+            controller_1.screen.clear_screen()
+            controller_1.screen.set_cursor(2, 2)
+            controller_1.screen.print("Nearing trigger limit")
+
+        if flywheel4.temperature(PERCENT)==50:
+            controller_1.screen.clear_screen()
+            controller_1.screen.set_cursor(2, 2)
+            controller_1.screen.print("flywheel at 50% temp")
+        
+        if flywheel4.temperature(PERCENT)==85:
+            controller_1.screen.clear_screen()
+            controller_1.screen.set_cursor(2, 2)
+            controller_1.screen.print("flywheel at 85% temp")
+
+        if controller_1.buttonUp.pressing():
+            controller_1.screen.set_cursor(3, 2)
+            controller_1.screen.print("frDrive at:", frDrive.temperature(PERCENT))
+        else:
+            controller_1.screen.clear_row(3)
+
+        #for testing flywheel(seeing if VEX PID is better than mine)
+        #wait(500, MSEC)
+        #can use trigger around 65 times before air runs out
+        if flywheelfast is True:
+            flywheel4.spin(FORWARD, pidf(70, flywheel4.velocity(PERCENT)), VOLT)
+            print("flywheel velocity", flywheel4.velocity(PERCENT))          
+        if flywheelslow is True:
+            flywheel4.spin(FORWARD, pidf(58, flywheel4.velocity(PERCENT)), VOLT)          
+            print("flywheel velocity", flywheel4.velocity(PERCENT))   
+        if flywheelclose is True:
+            flywheel4.spin(FORWARD, pidf2(56, flywheel4.velocity(PERCENT)), VOLT)          
+            print("flywheel velocity", flywheel4.velocity(PERCENT))         
+
+               
+def minusOne():
+    global display
+    global autonMax
+    global autonMin
+    if display == autonMin:
+        display = autonMax
+    else:
+        display-= 1
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1,1)
+    brain.screen.print(display)
+def plusOne():
+    global display
+    global autonMax
+    global autonMin
+    if display == autonMax:
+        display = autonMin
+    else:
+        display+= 1
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1,1)
+    brain.screen.print(display)
+def autonSelected():
+    global autonValue
+    global display
+    autonValue = display 
+    brain.screen.clear_screen()
+    brain.screen.set_cursor(1,1)
+    brain.screen.print("You have selected auton: " + str(display))
+
+#miscellaneous
+def driveforwardcheck(fr, fl, br, bl):
+    if fl-10 < fr < fl+10:
+        if br-10< fr <br+10:
+            if bl-10 < fr < bl+10:
+                return True
+    return False
+def coefficient(motorspeed):
+    if motorspeed > 0:
+        coeff = 1
+    elif motorspeed < 0:
+        coeff = -1
+    else:
+        coeff = 0
+    return coeff
+#velocities
+def flywheelvelocity(userinput):
+    flywheel4.set_velocity(userinput, RPM)
+def flywheelvelocitypercent(userinput):
+    flywheel4.set_velocity(userinput, PERCENT)
+def flywheelsetstop(userinput):
+    flywheel4.set_stopping(userinput)
+def drivesetstop(userinput):
+    frDrive.set_stopping(userinput)
+    flDrive.set_stopping(userinput)
+    brDrive.set_stopping(userinput)
+    blDrive.set_stopping(userinput)
+def drivevelocity(userinput):
+    frDrive.set_velocity(userinput,RPM)
+    flDrive.set_velocity(userinput,RPM)
+    brDrive.set_velocity(userinput,RPM)
+    blDrive.set_velocity(userinput,RPM)
+#motions
+def driveforward():
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+def driveforwardvelocity(userinput):
+    frDrive.set_velocity(userinput,RPM)
+    flDrive.set_velocity(userinput,RPM)
+    brDrive.set_velocity(userinput,RPM)
+    blDrive.set_velocity(userinput,RPM)
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+def driveforwardpercent(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+def driveforwardvoltage(userinput):
+    frDrive.spin(FORWARD, userinput, VOLT)
+    flDrive.spin(FORWARD, userinput, VOLT)
+    blDrive.spin(FORWARD, userinput, VOLT)
+    brDrive.spin(FORWARD, userinput, VOLT)
+def drivestop():
+    frDrive.stop()
+    brDrive.stop()
+    blDrive.stop()
+    flDrive.stop()   
+def drivestopcoast():
+    #was custom coast function -> ended up making the robot overturn or turn sideways when trying to stop straight
+    while not(-5<frDrive.velocity(PERCENT)<5 or -5<flDrive.velocity(PERCENT)<5 or -5<brDrive.velocity(PERCENT)<5 or -5<blDrive.velocity(PERCENT)<5) and (controller_1.axis3.position() == 0 and controller_1.axis4.position() == 0):
+        #coefficient(motorname.velocity) gets the right way to go(velocity up if velocity<0, otherwise velocity down)
+        #the number that^ is multiplied by gets the rate of change for velocity
+        frDrive.set_velocity(frDrive.velocity(PERCENT)+(-1*coefficient(frDrive.velocity(PERCENT))*15), PERCENT)
+        flDrive.set_velocity(flDrive.velocity(PERCENT)+(-1*coefficient(flDrive.velocity(PERCENT))*15), PERCENT)
+        brDrive.set_velocity(brDrive.velocity(PERCENT)+(-1*coefficient(brDrive.velocity(PERCENT))*15), PERCENT)
+        blDrive.set_velocity(blDrive.velocity(PERCENT)+(-1*coefficient(blDrive.velocity(PERCENT))*15), PERCENT)
+        wait(75, MSEC)
+    drivesetstop(COAST)
+    drivestop()
+    #consider changing to voltage
+def drivestop2():
+    drivesetstop(COAST)
+    frDrive.stop()
+    brDrive.stop()
+    blDrive.stop()
+    flDrive.stop()   
+    wait(75, MSEC)
+    drivesetstop(BRAKE)
+def drivestop3():
+    #was used to differentiate between front stop and side stop
+
+    frontCompareBig = flDrive.velocity(RPM) + 15
+    frontCompareSmall = flDrive.velocity(RPM) - 15
+    if frontCompareSmall<frDrive.velocity(RPM)<frontCompareBig:
+        while not(-5<frDrive.velocity(PERCENT)<5 or -5<flDrive.velocity(PERCENT)<5 or -5<brDrive.velocity(PERCENT)<5 or -5<blDrive.velocity(PERCENT)<5) and (controller_1.axis3.position() == 0 and controller_1.axis4.position() == 0):
+        #coefficient(motorname.velocity) gets the right way to go(velocity up if velocity<0, otherwise velocity down)
+        #the number that^ is multiplied by gets the rate of change for velocity
+            frDrive.set_velocity(frDrive.velocity(PERCENT)+(-1*coefficient(frDrive.velocity(PERCENT))*15), PERCENT)
+            flDrive.set_velocity(flDrive.velocity(PERCENT)+(-1*coefficient(flDrive.velocity(PERCENT))*15), PERCENT)
+            brDrive.set_velocity(brDrive.velocity(PERCENT)+(-1*coefficient(brDrive.velocity(PERCENT))*15), PERCENT)
+            blDrive.set_velocity(blDrive.velocity(PERCENT)+(-1*coefficient(blDrive.velocity(PERCENT))*15), PERCENT)
+            wait(75, MSEC)
+        drivesetstop(COAST)
+        drivestop()
+    else:
+        drivesetstop(BRAKE)
+        drivestop()
+    
+def turnright(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    frDrive.spin(REVERSE)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    brDrive.spin(REVERSE)
+
+def turnleft(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    frDrive.spin(FORWARD)
+    flDrive.spin(REVERSE)
+    blDrive.spin(REVERSE)
+    brDrive.spin(FORWARD)
+
+def flywheelspin():
+    flywheel4.spin(FORWARD)
+def flywheelspinvoltage(userinput):
+    #function not working
+    flywheel4.spin(FORWARD, userinput, VOLT)
+def flywheelstop():
+    flywheel4.set_stopping(COAST)
+    flywheel4.stop()
+
+
+#pids
+
+def pidleftpower1(rightturns, leftturns, rightpower):
+    #PID for drive straight (front)
+    #percentage
+    global integralstraight
+    global lasterrorstraight
+    global leftpowerprev
+    Kp = 0
+    #or 3 for Ki
+    Ki = 0
+    Kd = 0
+    error = (rightturns - leftturns)/leftturns 
+    integralstraight += error
+    derivative = error-lasterrorstraight
+    lasterrorstraight = error
+    #can't set motor power...should i use voltage and pid or use velocity?
+    leftpower = rightpower + ((error*Kp)+(integralstraight*Ki)+(derivative*Kd))*leftpowerprev
+    leftpowerprev = leftpower
+    print(error)
+    return leftpower
+    #define vars Kp, Ki, Kd
+    #set Kp to 0
+def pidleftpower2(rightturns, leftturns, rightpower):
+    #doesn't work as well if error > 20%(will just put left full speed, right at 10V)
+    #PID for drive straight (front)
+    #voltage
+    global integralstraight
+    global lasterrorstraight
+    global leftpowerprev
+    #right now steady but increasingly left driving
+    Kp = 12
+    Ki = 0
+    Kd = 0
+    #don't know why, but right now leftturns > rightturns
+    #when negative -> if rightturns > leftturns, negative error, negative change in voltage
+    #if leftturns > rightturns, positive error -> positive change(slow down)
+    error = rightturns-leftturns
+    integralstraight += error
+    derivative = error-lasterrorstraight
+    lasterrorstraight = error
+    #can't set motor power...should i use voltage and pid or use velocity?
+    leftpower = rightpower + (error*Kp)+(integralstraight*Ki)+(derivative*Kd)
+    return leftpower
+    #define vars Kp, Ki, Kd
+    #set Kp to 0
+       
+def pidturnpower1(setpoint, curposition, start):
+    #PID for turning(to a point)
+    #if it turns over, will correct itself
+    #when setpoint > curposition, will turn right. otherwise, turn left.
+    integer = abs(setpoint - start)
+    Kp = 1/integer*9
+    Ki = 0
+    Kd = 0
+    global integralturn
+    global lasterrorturn
+    error = setpoint - curposition
+    integralturn += error
+    derivative = error-lasterrorturn
+    lasterrorturn = error
+    #2.8 is the lowest possible V to still move in turn
+    turnpower = error*Kp+integralturn*Ki+derivative*Kd
+    if 0 <=turnpower < 3:
+        turnpower = 3
+    if -3 <turnpower<0:
+        turnpower = -3
+    return turnpower
+
+def pidturnpower2(setpoint, curposition):
+    global lasterrorturn
+    #velocity PID turning
+    #set right motors to reverse, left to forward
+    #if setpoint>curposition, turns right. else, turns left
+    #have to test with chord attached, might be turning around the 0 line but don't know why
+    #Kp = 0.42
+    Kp = 0.5
+    Ki = 0
+    #0.11
+    #Kd = 0.0022
+    Kd = 0
+    #global integralturn
+    #global lasterrorturn
+    error = setpoint - curposition
+    derivative = error - lasterrorturn
+    lasterrorturn = error
+    turnpower = error*Kp+derivative*Kd
+    if 0<turnpower<1:
+        turnpower=1
+    elif 0>turnpower>-1:
+        turnpower=-1
+    if -1<error<1:
+        turnpower = 0
+    return turnpower
+
+def piddrivepower1(setpoint, curposition):
+    #velocity
+    #go to motor.turns value inputted as "setpoint"
+    #if setpoint > curposition, drives forward. If not, reverses.
+    Kp = 30
+    Ki = 0
+    Kd = 0
+    #PID for drive straight (front)
+    global integraldistance
+    global lasterrordistance
+    error =  setpoint - curposition
+    integraldistance += error
+    derivative = error-lasterrordistance
+    lasterrordistance = error
+    #can't set motor power...should i use voltage and pid or use velocity?
+    drivepower = error*Kp+integraldistance*Ki+derivative*Kd
+    
+    #10
+    if 0 <=drivepower < 15:
+        drivepower = 15
+    if -15 <drivepower <0:
+        drivepower = -15
+    #0.01
+    if -0.02<error<0.02:
+        drivepower=0
+    return drivepower
+
+def piddrivepower2(setpoint, curposition):
+    #velocity
+    #go to distance sensor value inputted as "setpoint"
+    #if curposition > setpoint, drives forward. If not, reverses.
+    Kp = 0.15
+    Ki = 0
+    Kd = 0
+    #PID for drive straight (front)
+    #global integraldistance
+    #global lasterrordistance
+    error = curposition - setpoint
+    #integraldistance += error
+    #derivative = error-lasterrordistance
+    #lasterrordistance = error
+    #can't set motor power...should i use voltage and pid or use velocity?
+    drivepower = error*Kp#+integraldistance*Ki+derivative*Kd
+    #3
+    if 0 <=drivepower < 5:
+        drivepower = 5
+    if -5 <drivepower <0:
+        drivepower = -5
+    if -3<error<3:
+        drivepower=0
+    return drivepower
+
+def pidf(setpoint, currentspeed):
+    global integralflywheel
+    global lasterrorflywheel
+    global prevresultflywheel
+    #Kf=0.135 works
+    Kf = 11/70
+    error = setpoint-currentspeed
+    #0.0001 stabalising oscillations
+    #not reaching setpoint fast enough but not oscillating now
+    derivative = lasterrorflywheel-error
+    integralflywheel +=error
+    Kp = 0.1
+    Ki = 0
+    Kd = 0
+    result = Kf*setpoint + Kp*error + Kd*derivative + Ki*integralflywheel
+    if (result-prevresultflywheel)>2:
+        result = prevresultflywheel+1
+    prevresultflywheel = result
+    return result
+def pidf2(setpoint, currentspeed):
+    global prevresultflywheel
+    #Kf=0.135 works
+    Kf = 10/70
+    error = setpoint-currentspeed
+    #0.0001 stabalising oscillations
+    #not reaching setpoint fast enough but not oscillating now
+    Kp = 0.004
+    Ki = 0
+    Kd = 0
+    result = Kf*setpoint + Kp*error
+    if (result-prevresultflywheel)>2:
+        result = prevresultflywheel+1
+    prevresultflywheel = result
+    return result
+comp = Competition(user_control, autonomous)
+pre_autonomous()
+#autonomous()
+
+#test the effectiveness of hold function while shooting
