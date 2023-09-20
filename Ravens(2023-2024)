@@ -66,6 +66,7 @@ def user_control():
             fbSpeed = 0
         if lrSpeed >= -10 and lrSpeed <= 10:
             lrSpeed = 0
+
         if fbSpeed != 0 or lrSpeed != 0:
             #-30 percent
             #if controller_1.buttonRight.pressing():
@@ -76,34 +77,32 @@ def user_control():
             flDrive.set_velocity(fbSpeed+lrSpeed, PERCENT)
             brDrive.set_velocity(fbSpeed-lrSpeed, PERCENT)
             blDrive.set_velocity(fbSpeed+lrSpeed, PERCENT)
+            frDrive.spin(FORWARD)
+            flDrive.spin(FORWARD)
+            brDrive.spin(FORWARD)
+            blDrive.spin(FORWARD)
+
             driveforward()
-            print(frDrive.velocity(PERCENT))
         else:
-            drivecoast1()
+            drivestop()
         if controller_1.buttonA.pressing():
             catapultgo()
         elif controller_1.buttonB.pressing():
             catapultstop()
         if controller_1.buttonRight.pressing():
             expand()
+            print("expand")
         elif controller_1.buttonLeft.pressing():
             contract()
-        
 
 #FUNCTIONS
 #velocities
-def catapultvelocity(userinput):
-    catapult.set_velocity(userinput, RPM)
-def catapultpercent(userinput):
-    catapult.set_velocity(userinput, PERCENT)
-def flywheelsetstop(userinput):
-    catapult.set_stopping(userinput)
 def drivesetstop(userinput):
     frDrive.set_stopping(userinput)
     flDrive.set_stopping(userinput)
     brDrive.set_stopping(userinput)
     blDrive.set_stopping(userinput)
-def drivevelocity(userinput):
+def drivesetvelocity(userinput):
     frDrive.set_velocity(userinput,RPM)
     flDrive.set_velocity(userinput,RPM)
     brDrive.set_velocity(userinput,RPM)
