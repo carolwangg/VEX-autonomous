@@ -1,1 +1,287 @@
-{"mode":"Text","textContent":"#region VEXcode Generated Robot Configuration\nfrom vex import *\nimport urandom\n\n# Brain should be defined by default\nbrain=Brain()\n\n# Robot configuration code\nflDrive = Motor(Ports.PORT11, GearSetting.RATIO_6_1, True)\nfrDrive = Motor(Ports.PORT20, GearSetting.RATIO_6_1, False)\ntrack = Motor(Ports.PORT5, GearSetting.RATIO_6_1, False)\ninertial = Inertial(Ports.PORT15)\n\n\n# wait for rotation sensor to fully initialize\nwait(30, MSEC)\n\n\ndef play_vexcode_sound(sound_name):\n    # Helper to make playing sounds from the V5 in VEXcode easier and\n    # keeps the code cleaner by making it clear what is happening.\n    print(\"VEXPlaySound:\" + sound_name)\n    wait(5, MSEC)\n\n# add a small delay to make sure we don't print in the middle of the REPL header\nwait(200, MSEC)\n# clear the console to make sure we don't have the REPL in the console\nprint(\"\\033[2J\")\n\n#endregion VEXcode Generated Robot Configuration\n\n# ------------------------------------------\n# \n# \tProject:\n#\tAuthor:\n#\tCreated:\n#\tConfiguration:\n# \n# ------------------------------------------\n\n# Library imports\nfrom vex import *\n\n#import math\n\n# Initialize robot position and orientation\nx = 0\ny = 0\ntheta = 0\n\n# Initialize wheel encoder counts\nleft_encoder_count = 0\nright_encoder_count = 0\nback_encoder_count = 0\n\n#odom global positioning coordinates\ntheta = 0\nx = 0\ny = 0\n\n# Set the wheel diameter and the distance between the wheels\nwheel_circumference = 4*math.pi #inches, 36:84 gear ratio\n#5.3-6.4\n#13.8\n#distance from tracking centre will need to be recalibrated after new chassis made\nTr = 6.2\nTl = 6.2\nTs = 0\n# Begin project code\nprevflpos = 0\nprevfrpos = 0\n\n#function 1 and 2 are for testing purposes -> the brain would only execute first function for some reason\ndef function2():\n    inertial.calibrate()\n    wait(2, SECONDS)\n    print(\"wait done\")\n    flDrive.set_velocity(20, PERCENT)\n    frDrive.set_velocity(-20, PERCENT)\n    global x, y, theta, left_encoder_count, right_encoder_count, back_encoder_count, prevflpos, prevfrpos, Tr, Tl\n    brain.screen.clear_screen()\n    brain.screen.print(\"preauton\")\n    # place driver control in this while loop\n    frDrive.set_stopping(BRAKE)\n    flDrive.set_stopping(BRAKE)\n    \n    #Y VALUE IS INCONSISTENT, BUT PRETTY ACCURATE. probably because of chassis limitations/no pid\n    frDrive.spin(FORWARD)\n    flDrive.spin(FORWARD)\n    while inertial.heading()>350 or inertial.heading(DEGREES)<90:\n        #refresh variables\n        #math is not wrong. but sampling rate seems to be too low\n        curflpos = flDrive.position(TURNS)\n        curfrpos = frDrive.position(TURNS)\n        left_encoder_count = (curflpos-prevflpos)*36/84\n        right_encoder_count = (curfrpos-prevfrpos)*36/84\n        \n        prevflpos = flDrive.position(TURNS)\n        prevfrpos = frDrive.position(TURNS)\n        #frDrive.spin(FORWARD)\n        #flDrive.spin(FORWARD)\n        #back_encoder_count = bDrive.position(TURNS)*36/84\n        update_position()\n        #print(\"theta:\", theta)\n        #print(\"tracking wheel:\", track.position(TURNS))\n        #print(\"frpos\", frDrive.position(TURNS), \"flpos\", flDrive.position(TURNS))\n        #print(\"x:\", x, \", y:\", y)\n        #print(\"frDrive.position:\", frDrive.position(TURNS), \"flDrive.position:\", flDrive.position(TURNS))\n        #print((((get_wheel_distance(flDrive.position(TURNS)-frDrive.position(TURNS)))*3/7)/12.4)*(180/math.pi))\n        wait(10, MSEC)\n    frDrive.stop()\n    flDrive.stop()\n    wait(2, SECONDS)\n    curflpos = flDrive.position(TURNS)\n    curfrpos = frDrive.position(TURNS)\n    left_encoder_count = (curflpos-prevflpos)*36/84\n    right_encoder_count = (curfrpos-prevfrpos)*36/84\n    prevflpos = flDrive.position(TURNS)\n    prevfrpos = frDrive.position(TURNS)\n    update_position()\n    print(\"theta(sensor):\", inertial.heading(DEGREES))\n    print(\"thetacalc2=\", (((get_wheel_distance(flDrive.position(TURNS)-frDrive.position(TURNS)))*3/7)/12.4)*(180/math.pi))\n    print(\"theta(calc):\", theta*180/math.pi)\n    #print(\"tracking wheel:\", track.position(TURNS))\n    #print(\"final-x:\", x, \", final-y:\", y, \", final theta(calc):\", theta*180/math.pi, \", theta(sensor):\", inertial.heading(DEGREES))\ndef function1():\n    inertial.calibrate()\n    wait(2, SECONDS)\n    print(\"wait done\")\n    flDrive.set_velocity(20, PERCENT)\n    frDrive.set_velocity(20, PERCENT)\n    global x\n    global y\n    global theta\n    global left_encoder_count\n    global right_encoder_count\n    global back_encoder_count\n    global prevflpos\n    global prevfrpos\n    global Tr\n    global Tl\n    brain.screen.clear_screen()\n    brain.screen.print(\"preauton\")\n    # place driver control in this while loop\n    frDrive.set_stopping(COAST)\n    flDrive.set_stopping(COAST)\n    \n    #Y VALUE IS INCONSISTENT, BUT PRETTY ACCURATE. probably because of chassis limitations/no pid\n    \n    while brain.timer.time(SECONDS)<10:\n        #frDrive.spin(FORWARD)\n        #flDrive.spin(FORWARD)\n        #refresh variables\n        #math is not wrong. but sampling rate seems to be too low\n        #variable updating(include before each update_position)\n        curflpos = flDrive.position(TURNS)\n        curfrpos = frDrive.position(TURNS)\n        left_encoder_count = (curflpos-prevflpos)*36/84  #36/84 is ratio of gear from motor to wheels\n        right_encoder_count = (curfrpos-prevfrpos)*36/84\n        prevflpos = flDrive.position(TURNS)\n        prevfrpos = frDrive.position(TURNS)\n        #call position update function\n        update_position()\n        wait(10, MSEC)\n    #frDrive.stop()\n    #flDrive.stop()\n    wait(100, MSEC)\n    curflpos = flDrive.position(TURNS)\n    curfrpos = frDrive.position(TURNS)\n    left_encoder_count = (curflpos-prevflpos)*36/84\n    right_encoder_count = (curfrpos-prevfrpos)*36/84\n    prevflpos = flDrive.position(TURNS)\n    prevfrpos = frDrive.position(TURNS)\n    update_position()\n    print(\"theta(sensor):\", inertial.heading(DEGREES))\n    print(\"theta(calc):\", theta*180/math.pi)\n    print(\"thetacalc2=\", (((get_wheel_distance(flDrive.position(TURNS)-frDrive.position(TURNS)))*3/7)/12.4)*(180/math.pi))\n    print(\"final-x:\", x, \", final-y:\", y)\n\ndef pre_autonomous():\n    #inertial.calibrate()\n    #wait(2, SECONDS)\n    #print(\"calibrate done\")\n    global x\n    global y\n    global theta\n    global left_encoder_count\n    global right_encoder_count\n    global back_encoder_count\n    global prevflpos\n    global prevfrpos\n    global Tr\n    global Tl\n    while y<12:\n        curflpos = flDrive.position(TURNS)\n        curfrpos = frDrive.position(TURNS)\n        left_encoder_count = (curflpos-prevflpos)*36/84\n        right_encoder_count = (curfrpos-prevfrpos)*36/84\n        prevflpos = flDrive.position(TURNS)\n        prevfrpos = frDrive.position(TURNS)\n        wait(10, MSEC)\n        update_position()\n        #print(\"motorspins:\", frDrive.position(TURNS))\n        #print(\"final-x:\", x, \", final-y:\", y)\n    print(\"drive done\")\n    wait(2, SECONDS)\n    curflpos = flDrive.position(TURNS)\n    curfrpos = frDrive.position(TURNS)\n    left_encoder_count = (curflpos-prevflpos)*36/84\n    right_encoder_count = (curfrpos-prevfrpos)*36/84\n    prevflpos = flDrive.position(TURNS)\n    prevfrpos = frDrive.position(TURNS)\n    update_position()\n    print(\"final-x:\", x, \", final-y:\", y)\n\ndef autonomous():\n    wait(1, MSEC)\n    # place automonous code here\n\n    \ndef user_control():\n    wait(1, MSEC)\n        \n\n# Calculate the distance traveled by each wheel\ndef get_wheel_distance(count):\n    global wheel_circumference\n    distance = wheel_circumference*count\n    return distance\n# Update the robot position and orientation based on the encoder counts\ndef get_turns_from_distance(distance):\n    global wheel_circumference\n    count = distance/wheel_circumference\n    return count\n\ndef update_position():\n    global x\n    global y \n    global theta\n    global left_encoder_count\n    global right_encoder_count\n    global prevflpos\n    global prevfrpos\n    #// = to try\n    \n    distance_left = get_wheel_distance(left_encoder_count)\n    distance_right = get_wheel_distance(right_encoder_count)\n    #print(\"distance_left:\", distance_left, \", distance_right:\", distance_right)\n    #error in distance left and right calculations, \n    distance_back = get_wheel_distance(back_encoder_count)\n    distance_center = (distance_left+distance_right)/2\n    theta_change = (distance_left-distance_right)/(Tr+Tl)\n    #//theta_change = (inertial.heading(DEGREES)*Math.pi/180)-theta\n\n    #if(theta_change == 0):\n    #    x += distance_center\n    #    y += 0\n    #else:\n    #    dx += 2*((distance_back/theta_change)+Ts)*(math.sin(theta_change/2))\n    #    dy += 2*((distance_right/theta_change)+Tr)*(math.sin(theta_change/2))\n    \n    #beta = (theta + theta_change/2)\n\n    #update x and y global coords with distances calculated from front two wheels \n    #x += dx*math.sin(beta) \n    #y += dx*math.cos(beta)\n\n    #update x and y global coords with distances calculated from back wheel(and negative angle?? idk)\n    #x += dy*(-math.sin(beta))\n    #y += dy*math.cos(beta)\n\n    #the simpler one\n\n    beta = theta + (theta_change/2) #change in angle from y-axis = change in orientation / 2\n\n    #unlike the epilons method, this one only uses the distance travelled from front two wheels to calculate global x, y\n    #thus less accurate for strafe moments\n    #also unlike epilons method, in simple ver. distance_center is = dx/dy \n    x += distance_center*math.sin(beta) \n    y += distance_center*math.cos(beta)\n\n    theta += theta_change\n    #//theta = inertial.heading*Math.pi/180\n\n# create competition instance\ncomp = Competition(user_control, autonomous)\npre_autonomous()\n","textLanguage":"python","rconfig":[{"port":[11],"name":"flDrive","customName":true,"deviceType":"Motor","deviceClass":"motor","setting":{"reversed":"true","fwd":"forward","rev":"reverse","gear":"ratio6_1"},"triportSourcePort":22},{"port":[20],"name":"frDrive","customName":true,"deviceType":"Motor","deviceClass":"motor","setting":{"reversed":"false","fwd":"forward","rev":"reverse","gear":"ratio6_1"},"triportSourcePort":22},{"port":[5],"name":"track","customName":true,"deviceType":"Motor","deviceClass":"motor","setting":{"reversed":"false","fwd":"forward","rev":"reverse","gear":"ratio6_1"},"triportSourcePort":22},{"port":[15],"name":"inertial","customName":true,"deviceType":"Inertial","deviceClass":"inertial","setting":{},"triportSourcePort":22}],"slot":1,"platform":"V5","sdkVersion":"20220726.10.00.00","appVersion":"3.0.2","minVersion":"3.0.0","fileFormat":"1.2.0","icon":"","targetBrainGen":"First","v5Sounds":[{"name":"game over","url":"static/sounds/mixkit-arcade-retro-game-over-213.wav"}],"v5SoundsEnabled":false,"target":"Physical"}
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+flDrive = Motor(Ports.PORT11, GearSetting.RATIO_6_1, True)
+frDrive = Motor(Ports.PORT20, GearSetting.RATIO_6_1, False)
+track = Motor(Ports.PORT5, GearSetting.RATIO_6_1, False)
+inertial = Inertial(Ports.PORT15)
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:
+#	Author:
+#	Created:
+#	Configuration:
+# 
+# ------------------------------------------
+
+# Library imports
+from vex import *
+
+#import math
+
+# Initialize robot position and orientation
+x = 0
+y = 0
+theta = 0
+
+# Initialize wheel encoder counts
+left_encoder_count = 0
+right_encoder_count = 0
+back_encoder_count = 0
+
+#odom global positioning coordinates
+theta = 0
+x = 0
+y = 0
+
+# Set the wheel diameter and the distance between the wheels
+wheel_circumference = 4*math.pi #inches, 36:84 gear ratio
+#5.3-6.4
+#13.8
+#distance from tracking centre will need to be recalibrated after new chassis made
+Tr = 6.2
+Tl = 6.2
+Ts = 0
+# Begin project code
+prevflpos = 0
+prevfrpos = 0
+
+#function 1 and 2 are for testing purposes -> the brain would only execute first function for some reason
+def function2():
+    inertial.calibrate()
+    wait(2, SECONDS)
+    print("wait done")
+    flDrive.set_velocity(20, PERCENT)
+    frDrive.set_velocity(-20, PERCENT)
+    global x, y, theta, left_encoder_count, right_encoder_count, back_encoder_count, prevflpos, prevfrpos, Tr, Tl
+    brain.screen.clear_screen()
+    brain.screen.print("preauton")
+    # place driver control in this while loop
+    frDrive.set_stopping(BRAKE)
+    flDrive.set_stopping(BRAKE)
+    
+    #Y VALUE IS INCONSISTENT, BUT PRETTY ACCURATE. probably because of chassis limitations/no pid
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    while inertial.heading()>350 or inertial.heading(DEGREES)<90:
+        #refresh variables
+        #math is not wrong. but sampling rate seems to be too low
+        curflpos = flDrive.position(TURNS)
+        curfrpos = frDrive.position(TURNS)
+        left_encoder_count = (curflpos-prevflpos)*36/84
+        right_encoder_count = (curfrpos-prevfrpos)*36/84
+        
+        prevflpos = flDrive.position(TURNS)
+        prevfrpos = frDrive.position(TURNS)
+        #frDrive.spin(FORWARD)
+        #flDrive.spin(FORWARD)
+        #back_encoder_count = bDrive.position(TURNS)*36/84
+        update_position()
+        #print("theta:", theta)
+        #print("tracking wheel:", track.position(TURNS))
+        #print("frpos", frDrive.position(TURNS), "flpos", flDrive.position(TURNS))
+        #print("x:", x, ", y:", y)
+        #print("frDrive.position:", frDrive.position(TURNS), "flDrive.position:", flDrive.position(TURNS))
+        #print((((get_wheel_distance(flDrive.position(TURNS)-frDrive.position(TURNS)))*3/7)/12.4)*(180/math.pi))
+        wait(10, MSEC)
+    frDrive.stop()
+    flDrive.stop()
+    wait(2, SECONDS)
+    curflpos = flDrive.position(TURNS)
+    curfrpos = frDrive.position(TURNS)
+    left_encoder_count = (curflpos-prevflpos)*36/84
+    right_encoder_count = (curfrpos-prevfrpos)*36/84
+    prevflpos = flDrive.position(TURNS)
+    prevfrpos = frDrive.position(TURNS)
+    update_position()
+    print("theta(sensor):", inertial.heading(DEGREES))
+    print("thetacalc2=", (((get_wheel_distance(flDrive.position(TURNS)-frDrive.position(TURNS)))*3/7)/12.4)*(180/math.pi))
+    print("theta(calc):", theta*180/math.pi)
+    #print("tracking wheel:", track.position(TURNS))
+    #print("final-x:", x, ", final-y:", y, ", final theta(calc):", theta*180/math.pi, ", theta(sensor):", inertial.heading(DEGREES))
+def function1():
+    inertial.calibrate()
+    wait(2, SECONDS)
+    print("wait done")
+    flDrive.set_velocity(20, PERCENT)
+    frDrive.set_velocity(20, PERCENT)
+    global x
+    global y
+    global theta
+    global left_encoder_count
+    global right_encoder_count
+    global back_encoder_count
+    global prevflpos
+    global prevfrpos
+    global Tr
+    global Tl
+    brain.screen.clear_screen()
+    brain.screen.print("preauton")
+    # place driver control in this while loop
+    frDrive.set_stopping(COAST)
+    flDrive.set_stopping(COAST)
+    
+    #Y VALUE IS INCONSISTENT, BUT PRETTY ACCURATE. probably because of chassis limitations/no pid
+    
+    while brain.timer.time(SECONDS)<10:
+        #frDrive.spin(FORWARD)
+        #flDrive.spin(FORWARD)
+        #refresh variables
+        #math is not wrong. but sampling rate seems to be too low
+        #variable updating(include before each update_position)
+        curflpos = flDrive.position(TURNS)
+        curfrpos = frDrive.position(TURNS)
+        left_encoder_count = (curflpos-prevflpos)*36/84  #36/84 is ratio of gear from motor to wheels
+        right_encoder_count = (curfrpos-prevfrpos)*36/84
+        prevflpos = flDrive.position(TURNS)
+        prevfrpos = frDrive.position(TURNS)
+        #call position update function
+        update_position()
+        wait(10, MSEC)
+    #frDrive.stop()
+    #flDrive.stop()
+    wait(100, MSEC)
+    curflpos = flDrive.position(TURNS)
+    curfrpos = frDrive.position(TURNS)
+    left_encoder_count = (curflpos-prevflpos)*36/84
+    right_encoder_count = (curfrpos-prevfrpos)*36/84
+    prevflpos = flDrive.position(TURNS)
+    prevfrpos = frDrive.position(TURNS)
+    update_position()
+    print("theta(sensor):", inertial.heading(DEGREES))
+    print("theta(calc):", theta*180/math.pi)
+    print("thetacalc2=", (((get_wheel_distance(flDrive.position(TURNS)-frDrive.position(TURNS)))*3/7)/12.4)*(180/math.pi))
+    print("final-x:", x, ", final-y:", y)
+
+def pre_autonomous():
+    #inertial.calibrate()
+    #wait(2, SECONDS)
+    #print("calibrate done")
+    global x
+    global y
+    global theta
+    global left_encoder_count
+    global right_encoder_count
+    global back_encoder_count
+    global prevflpos
+    global prevfrpos
+    global Tr
+    global Tl
+    while y<12:
+        curflpos = flDrive.position(TURNS)
+        curfrpos = frDrive.position(TURNS)
+        left_encoder_count = (curflpos-prevflpos)*36/84
+        right_encoder_count = (curfrpos-prevfrpos)*36/84
+        prevflpos = flDrive.position(TURNS)
+        prevfrpos = frDrive.position(TURNS)
+        wait(10, MSEC)
+        update_position()
+        #print("motorspins:", frDrive.position(TURNS))
+        #print("final-x:", x, ", final-y:", y)
+    print("drive done")
+    wait(2, SECONDS)
+    curflpos = flDrive.position(TURNS)
+    curfrpos = frDrive.position(TURNS)
+    left_encoder_count = (curflpos-prevflpos)*36/84
+    right_encoder_count = (curfrpos-prevfrpos)*36/84
+    prevflpos = flDrive.position(TURNS)
+    prevfrpos = frDrive.position(TURNS)
+    update_position()
+    print("final-x:", x, ", final-y:", y)
+
+def autonomous():
+    wait(1, MSEC)
+    # place automonous code here
+
+    
+def user_control():
+    wait(1, MSEC)
+        
+
+# Calculate the distance traveled by each wheel
+def get_wheel_distance(count):
+    global wheel_circumference
+    distance = wheel_circumference*count
+    return distance
+# Update the robot position and orientation based on the encoder counts
+def get_turns_from_distance(distance):
+    global wheel_circumference
+    count = distance/wheel_circumference
+    return count
+
+def update_position():
+    global x
+    global y 
+    global theta
+    global left_encoder_count
+    global right_encoder_count
+    global prevflpos
+    global prevfrpos
+    #// = to try
+    
+    distance_left = get_wheel_distance(left_encoder_count)
+    distance_right = get_wheel_distance(right_encoder_count)
+    #print("distance_left:", distance_left, ", distance_right:", distance_right)
+    #error in distance left and right calculations, 
+    distance_back = get_wheel_distance(back_encoder_count)
+    distance_center = (distance_left+distance_right)/2
+    theta_change = (distance_left-distance_right)/(Tr+Tl)
+    #//theta_change = (inertial.heading(DEGREES)*Math.pi/180)-theta
+
+    #if(theta_change == 0):
+    #    x += distance_center
+    #    y += 0
+    #else:
+    #    dx += 2*((distance_back/theta_change)+Ts)*(math.sin(theta_change/2))
+    #    dy += 2*((distance_right/theta_change)+Tr)*(math.sin(theta_change/2))
+    
+    #beta = (theta + theta_change/2)
+
+    #update x and y global coords with distances calculated from front two wheels 
+    #x += dx*math.sin(beta) 
+    #y += dx*math.cos(beta)
+
+    #update x and y global coords with distances calculated from back wheel(and negative angle?? idk)
+    #x += dy*(-math.sin(beta))
+    #y += dy*math.cos(beta)
+
+    #the simpler one
+
+    beta = theta + (theta_change/2) #change in angle from y-axis = change in orientation / 2
+
+    #unlike the epilons method, this one only uses the distance travelled from front two wheels to calculate global x, y
+    #thus less accurate for strafe moments
+    #also unlike epilons method, in simple ver. distance_center is = dx/dy 
+    x += distance_center*math.sin(beta) 
+    y += distance_center*math.cos(beta)
+
+    theta += theta_change
+    #//theta = inertial.heading*Math.pi/180
+
+# create competition instance
+comp = Competition(user_control, autonomous)
+pre_autonomous()
