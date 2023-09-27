@@ -1,0 +1,290 @@
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+flDrive = Motor(Ports.PORT11, GearSetting.RATIO_6_1, True)
+frDrive = Motor(Ports.PORT20, GearSetting.RATIO_6_1, False)
+inertial = Inertial(Ports.PORT15)
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:
+#	Author:
+#	Created:
+#	Configuration:
+# 
+# ------------------------------------------
+
+# Library imports
+from vex import *
+sgn = 0
+Yf = 0
+Ys = 0
+Yaux = 0
+Ya = 0
+Vw = 0
+To = 0
+Ta = 0
+tau = 0
+Tm = 0
+Tk = 0
+Ts = 0
+Tt = 0
+vel = 0 #velocity
+gamma = 1
+# Begin project code
+#5.38558740615 inches per turn
+
+#ODOM
+x = 0
+y = 0
+theta = 0
+
+# Initialize wheel encoder counts
+left_encoder_count = 0
+right_encoder_count = 0
+back_encoder_count = 0
+theta = 0
+x = 0
+y = 0
+wheel_circumference = 4.13*math.pi #inches, 36:84 gear ratio
+#5.3-6.4
+#13.8
+Tr = 6.46
+Tl = 6.46
+#total frame around 11-13.5
+Ts = 0
+prevflpos = 0
+prevfrpos = 0
+
+def pre_autonomous():
+    # actions to do when the program starts
+    brain.screen.clear_screen()
+    brain.screen.print("pre auton code")
+    wait(1, SECONDS)
+
+def autonomous():
+    #motion profiling and odom. combined
+    global Tt, x, y, theta, left_encoder_count, right_encoder_count, back_encoder_count, prevflpos, prevfrpos, Tr, Tl
+    #1 rotation is
+    brain.screen.clear_screen()
+    brain.screen.print("auton code")
+    inertial.calibrate()
+    wait(2, SECONDS)
+    #motionprofile functions are all calculates w constant units, in this case it's rotations
+    #When setting distance(s), if you want to set it in inches you need to use inchtorotation().
+
+    #turning
+    s = rotationtoinch(angletorotation(math.pi/4))
+    v = minutestoseconds(rotationtoinch(200))
+    a = minutestoseconds(rotationtoinch(200))
+    motionprofileconst(s,v,a)
+    start = brain.timer.time(SECONDS)
+    reftime = brain.timer.time(SECONDS) - start
+    while reftime<=Tt:
+        #ODOM
+        curflpos = flDrive.position(TURNS)
+        curfrpos = frDrive.position(TURNS)
+        left_encoder_count = (curflpos-prevflpos)*36/84
+        right_encoder_count = (curfrpos-prevfrpos)*36/84
+        prevflpos = flDrive.position(TURNS)
+        prevfrpos = frDrive.position(TURNS)
+        update_position()
+
+        #MOTION PROFILING
+        reftime = brain.timer.time(SECONDS)-start
+        wait(10, MSEC)
+        frDrive.spin(FORWARD)
+        flDrive.spin(FORWARD)
+        frDrive.set_velocity(-(inchtorotation(secondstominutes(sgn*(motionprofileraw(reftime, v,a))))), RPM)
+        flDrive.set_velocity((inchtorotation(secondstominutes(sgn*(motionprofileraw(reftime, v,a))))), RPM)
+        reftime = brain.timer.time(SECONDS)-start
+    frDrive.stop()
+    flDrive.stop()
+    update_position()
+
+    print("2. x:", x, ", y:", y)
+    print("2. theta:", theta*180/math.pi, ", inertialtheta:", inertial.heading())
+    print("flDrive:", flDrive.position(TURNS), "frDrive:", frDrive.position(TURNS))
+    s = 15
+    v = minutestoseconds(rotationtoinch(200))
+    a = minutestoseconds(rotationtoinch(200))
+    motionprofileconst(s,v,a)
+    start = brain.timer.time(SECONDS)
+    reftime = brain.timer.time(SECONDS) - start
+    while reftime<=Tt:
+        #ODOM
+        curflpos = flDrive.position(TURNS)
+        curfrpos = frDrive.position(TURNS)
+        left_encoder_count = (curflpos-prevflpos)*36/84
+        right_encoder_count = (curfrpos-prevfrpos)*36/84
+        prevflpos = flDrive.position(TURNS)
+        prevfrpos = frDrive.position(TURNS)
+        update_position()
+
+        #MOTION PROFILING
+        #for mp function
+        reftime = brain.timer.time(SECONDS)-start 
+        wait(10, MSEC)
+        frDrive.spin(FORWARD)
+        flDrive.spin(FORWARD)
+        frDrive.set_velocity((inchtorotation(secondstominutes(sgn*(motionprofileraw(reftime, v,a))))), RPM)
+        flDrive.set_velocity((inchtorotation(secondstominutes(sgn*(motionprofileraw(reftime, v,a))))), RPM)
+        wait(10, MSEC)
+        #for loop
+        reftime = brain.timer.time(SECONDS)-start
+    frDrive.stop()
+    flDrive.stop()
+    curflpos = flDrive.position(TURNS)
+    curfrpos = frDrive.position(TURNS)
+    left_encoder_count = (curflpos-prevflpos)*36/84
+    right_encoder_count = (curfrpos-prevfrpos)*36/84
+    prevflpos = flDrive.position(TURNS)
+    prevfrpos = frDrive.position(TURNS)
+    update_position()
+
+
+
+    print("finalx:", x, ", finaly:", y)
+    print("finaltheta:", theta, ", inertialtheta:", inertial.heading())
+def user_control():
+    brain.screen.clear_screen()
+    # place driver control in this while loop
+    while True:
+        wait(20, MSEC)
+
+def motionprofileconst(s, maxvel, maxaccel):
+    #sets up constants
+    global sgn, Yf, Ys, Yaux, Ya, Vw, To, Ta, tau, Tm, Tk, Ts, Tt, gamma
+    if s<0:
+        sgn = -1
+    else:
+        sgn = 1
+    Yf = abs(s)
+    Ys = Yf/2
+    Yaux = (1/2)*(1+gamma)*((maxvel*maxvel)/maxaccel)
+    if Ys<=Yaux:
+        Ya = Ys
+        Vw = math.sqrt((Ys*maxaccel)/((1/2)*(1+gamma)))
+    else:
+        Ya = Yaux
+        Vw = maxvel
+    To = Vw/maxaccel
+    Ta = To*(1+gamma)
+    tau = gamma*To
+    Tm = Ta/2
+    Tk = 2*((Ys-Ya)/maxvel)
+    Ts = Ta+(Tk/2)
+    Tt = 2*Ts
+
+def motionprofileraw(t, maxvel, maxaccel):
+    #outputs required velocity
+    global sgn, Yf, Ys, Yaux, Ya, Vw, To, Ta, tau, Tm, Tk, Ts, Tt, vel
+    
+    if t <= 0:
+        vel = 0
+    if 0<t<tau: #until max accel reached
+        vel = (maxaccel/2)*((pow(t,2))/tau)
+    if tau<=t<=To: #until accel finished
+        vel = (maxaccel/2)*(t*2-tau)
+    if Tm<t<=Ts: #middle of accel ceiling to middle of movement(mostly from end of 1st deaccel)
+        vel = Vw - motionprofileraw(Ta-t, maxvel, maxaccel) #idk the excel sheet doesnt use this
+    if Ts<t:
+        vel = motionprofileraw(Tt-t, maxvel, maxaccel)
+    return vel
+
+def secondstominutes(sec):
+    return sec*60
+def minutestoseconds(mins):
+    return mins/60
+def rotationtoinch(rot):
+    return rot*(4*36*math.pi/84)
+def inchtorotation(inch):
+    return inch/(4*36*math.pi/84)
+
+#odom
+def get_wheel_distance(count):
+    global wheel_circumference
+    return wheel_circumference*count
+# Update the robot position and orientation based on the encoder counts
+
+def angletorotation(theta):
+    global Tl, Tr
+    #converts robot turn angle to number of motor turns per wheel
+    return (theta*(Tl+Tr)*7)/(24*math.pi)
+    #(theta*(Tl+Tr))/(2) gets distance, then divide by (4*math.pi) for distance to wheel conv, then multiply by (84/36) for wheel to motor spins conv
+def update_position():
+    #odometry pos.
+    global x
+    global y 
+    global theta
+    global left_encoder_count
+    global right_encoder_count
+    global prevflpos
+    global prevfrpos
+    #// = to try
+    
+    distance_left = get_wheel_distance(left_encoder_count)
+    distance_right = get_wheel_distance(right_encoder_count)
+    #print("distance_left:", distance_left, ", distance_right:", distance_right)
+    #error in distance left and right calculations, 
+    distance_back = get_wheel_distance(back_encoder_count)
+    distance_center = (distance_left+distance_right)/2
+    theta_change = (distance_left-distance_right)/(Tr+Tl)
+    #//theta_change = (inertial.heading(DEGREES)*Math.pi/180)-theta
+
+    #if(theta_change == 0):
+    #    x += distance_center
+    #    y += 0
+    #else:
+    #    dx += 2*((distance_back/theta_change)+Ts)*(math.sin(theta_change/2))
+    #    dy += 2*((distance_right/theta_change)+Tr)*(math.sin(theta_change/2))
+    
+    #beta = (theta + theta_change/2)
+
+    #update x and y global coords with distances calculated from front two wheels 
+    #x += dx*math.sin(beta) 
+    #y += dx*math.cos(beta)
+
+    #update x and y global coords with distances calculated from back wheel(and negative angle?? idk)
+    #x += dy*(-math.sin(beta))
+    #y += dy*math.cos(beta)
+
+    #the simpler one
+
+    beta = theta + (theta_change/2) #change in angle from y-axis = change in orientation / 2
+    thetaupdate = theta + theta_change
+    #unlike the epilons method, this one only uses the distance travelled from front two wheels to calculate global x, y
+    #thus less accurate for strafe moments
+    #also unlike epilons method, in simple ver. distance_center is = dx/dy 
+    x += distance_center*math.sin(thetaupdate) 
+    y += distance_center*math.cos(thetaupdate)
+
+    theta += theta_change
+    #//theta = inertial.heading*Math.pi/180
+# create competition instance
+#comp = Competition(user_control, autonomous)
+#pre_autonomous()
+autonomous()
