@@ -1,0 +1,191 @@
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:
+#	Author:
+#	Created:
+#	Configuration:
+# 
+# ------------------------------------------
+
+# Library imports
+from vex import *
+
+# Begin project code
+Tr = 6.2
+Tl = 6.2
+Ts = 0
+x = 0
+y = 0
+theta = 0
+
+def pre_autonomous():
+    # actions to do when the program starts
+    brain.screen.clear_screen()
+    brain.screen.print("pre auton code")
+    wait(1, SECONDS)
+
+def autonomous():
+    brain.screen.clear_screen()
+    brain.screen.print("autonomous code")
+    resetposition()
+    
+    goalfwd = pathgeneration(1,1)[0]
+    goalturns = pathgeneration(1,1)[1]
+
+    #//turnright(pidturnpower(goalturns, ))
+    driveforward(piddrivepower(goalfwd, frDrive.position(TURNS)))
+
+def user_control():
+    brain.screen.clear_screen()
+    # place driver control in this while loop
+    while True:
+        wait(20, MSEC)
+        
+def pathgeneration(goalx, goaly):
+    #returns angle to turn and distance to travel based on goal x, goal y coordinates, robot's current x, y, and current angle
+    #returns in 2d array format
+    global x, y, theta
+
+    #changes in x, y, and theta needed
+    dx = goalx - x
+    dy = goaly - y
+    dtheta = Math.atan2(dx, dy)
+
+    #converts the calculated turn angle into one that is between -180 and 180 degrees(but using pi for calculations)
+    goaltheta = anglewrap(dtheta-theta)
+    
+    goaldistance = math.sqrt(pow(dx,2) + pow(dy,2))
+
+    return goaltheta, goaldistance
+    #need to return goaldistance and goaltheta, or just change them in code?
+
+def anglewrap(theta):
+    #converts angles above pi to a negative angle under pi and vice versa
+    if(theta>math.pi):
+        theta = theta - 2*math.pi
+    elif(theta<-math.pi):
+        theta = theta + 2*math.pi
+    return theta
+
+def get_turns_from_angle(theta):
+    global Tl, Tr
+    #converts robot turn angle to number of motor turns per wheel
+    return (theta*(Tl+Tr)*7)/(24*math.pi)
+    #(theta*(Tl+Tr))/(2) gets distance, then divide by (4*math.pi) for distance to wheel conv, then multiply by (84/36) for wheel to motor spins conv
+    #numbers here(7/24) are after all common factors have been divided out
+
+#motion
+def driveforwardpercent(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+
+def turnright(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    frDrive.spin(REVERSE)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    brDrive.spin(REVERSE)
+
+def turnleft(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    frDrive.spin(FORWARD)
+    flDrive.spin(REVERSE)
+    blDrive.spin(REVERSE)
+    brDrive.spin(FORWARD)
+#pids
+
+def pidturnpower(setpoint, curposition):
+    global lasterrorturn
+    #//need to tune
+    Kp = 0.5
+    Ki = 0
+    Kd = 0
+    error = setpoint - curposition
+    derivative = error - lasterrorturn
+    lasterrorturn = error
+    turnpower = error*Kp+derivative*Kd
+
+    #makes sure will still move if velocity is -1<v<1, else gets stuck unmoving in pid loop
+    if 0<turnpower<1:
+        turnpower=1
+    elif 0>turnpower>-1:
+        turnpower=-1
+    if -1<error<1:
+        turnpower = 0
+    return turnpower
+
+def piddrivepower(setpoint, curposition):
+    #velocity
+    #go to motor.turns value inputted as "setpoint"
+    #if setpoint > curposition, drives forward. If not, reverses.
+    #//tune Kp value
+    Kp = 0
+    Ki = 0
+    Kd = 0
+
+    #global integraldistance
+    #global lasterrordistance
+
+    error =  setpoint - curposition
+    #integraldistance += error
+    #derivative = error-lasterrordistance
+    #lasterrordistance = error
+    drivepower = error*Kp  #+integraldistance*Ki+derivative*Kd
+    
+    if 0 <=drivepower < 15:
+        drivepower = 15
+    if -15 <drivepower <0:
+        drivepower = -15
+    if -0.02<error<0.02:
+        drivepower=0
+    return drivepower
+
+#odometry things
+def resetposition():
+    global x, y, theta
+    x = 0
+    y = 0
+    theta = 0
+
+# create competition instance
+comp = Competition(user_control, autonomous)
+pre_autonomous()
