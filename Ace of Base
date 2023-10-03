@@ -1,0 +1,126 @@
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:      VEXcode Project
+#	Author:       VEX
+#	Created:
+#	Description:  VEXcode V5 Python Project
+# 
+# ------------------------------------------
+
+# Library imports
+from vex import *
+brain.screen.print("Ravens <3")
+
+def pre_autonomous():
+    brain.screen.clear_screen()
+    brain.screen.print("pre-autonomous")
+    inertial.calibrate()
+    wait(2, SECONDS)
+
+def autonomous():
+
+    wait(1, MSEC)
+    # place automonous code here
+    brain.screen.clear_screen()
+    brain.screen.print("autonomous")
+    inertial.set_heading(0, DEGREES)
+    #start at the bottom left of the field
+
+    print(inertial.heading(DEGREES))
+    curInertial = inertial.heading(DEGREES)
+    turnNum = 0
+
+    #first turn, left
+    while turnNum != 1:
+        frDrive.spin(FORWARD)
+        flDrive.spin(FORWARD)
+        brDrive.spin(FORWARD)
+        blDrive.spin(FORWARD)
+
+        curInertial = inertial.heading(DEGREES)
+
+        if curInertial >= 263 and curInertial <= 277:
+            frDrive.stop()
+            flDrive.stop()
+            brDrive.stop()
+            blDrive.stop()
+            turnNum = 1
+            print(inertial.heading(DEGREES))
+
+    #second turn, right
+    while turnNum != 2:
+        frDrive.spin(REVERSE)
+        flDrive.spin(REVERSE)
+        brDrive.spin(REVERSE)
+        blDrive.spin(REVERSE)
+
+        curInertial = inertial.heading(DEGREES)
+
+        if curInertial >= -7 and curInertial <= 7:
+            frDrive.stop()
+            flDrive.stop()
+            brDrive.stop()
+            blDrive.stop()
+            turnNum = 2
+            print(inertial.heading(DEGREES))
+
+    #third turn, right
+    while turnNum != 3:
+        frDrive.spin(REVERSE)
+        flDrive.spin(REVERSE)
+        brDrive.spin(REVERSE)
+        blDrive.spin(REVERSE)
+
+        curInertial = inertial.heading(DEGREES)
+
+        if curInertial >= 83 and curInertial <= 97:
+            frDrive.stop()
+            flDrive.stop()
+            brDrive.stop()
+            blDrive.stop()
+            turnNum = 3
+            print(inertial.heading(DEGREES))
+    
+    #fourth turn, left
+    while turnNum != 4:
+        frDrive.spin(FORWARD)
+        flDrive.spin(FORWARD)
+        brDrive.spin(FORWARD)
+        blDrive.spin(FORWARD)
+
+        curInertial = inertial.heading(DEGREES)
+
+        if curInertial >= -7 and curInertial <= 7:
+            frDrive.stop()
+            flDrive.stop()
+            brDrive.stop()
+            blDrive.stop()
+            turnNum = 4
+            print(inertial.heading(DEGREES))
