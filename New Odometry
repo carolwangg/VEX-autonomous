@@ -1,0 +1,257 @@
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+frDrive = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
+flDrive = Motor(Ports.PORT20, GearSetting.RATIO_18_1, False)
+brDrive = Motor(Ports.PORT13, GearSetting.RATIO_18_1, False)
+blDrive = Motor(Ports.PORT18, GearSetting.RATIO_18_1, False)
+catapult = Motor(Ports.PORT15, GearSetting.RATIO_18_1, True)
+inertial = Inertial(Ports.PORT12)
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:      VEXcode Project
+#	Author:       VEX
+#	Created:
+#	Description:  VEXcode V5 Python Project
+# 
+# ------------------------------------------
+
+# Library imports
+from vex import *
+brain.screen.print("Ravens <3")
+
+#odometry variables
+Dl = 0 #distance driven by left wheels
+Dr = 0 #distance driven by right wheels
+
+theta = 90 #orientation of the robot, starting at 90 degrees and increasing clockwise
+XPos = -161
+YPos = -107.3
+
+#Start of Carol odometry code
+# Initialize robot position and orientation
+x = 0
+y = 0
+theta = 0
+
+# Initialize wheel encoder counts
+fl_encoder_count = 0
+fr_encoder_count = 0
+bl_encoder_count = 0
+br_encoder_count = 0
+
+# Set the wheel diameter and the distance between the wheels
+wheel_circumference = 4*math.pi #inches, 36:84 gear ratio
+#5.3-6.4
+#13.8
+#distance from tracking centre, same for all four wheels tracked
+Dt = 7.9 #inches
+# Begin project code
+prevflpos = 0
+prevfrpos = 0
+prevblpos = 0
+prevbrpos = 0
+
+def measure_distance():
+    global left_encoder_count
+    global right_encoder_count
+    global prevflpos
+    global prevfrpos
+    global prevblpos
+    global prevbrpos
+    curflpos = flDrive.position(TURNS)
+    curfrpos = frDrive.position(TURNS)
+    curblpos = flDrive.position(TURNS)
+    curbrpos = frDrive.position(TURNS)
+    left_encoder_count = (curflpos - prevflpos + curblpos - prevblpos)*60/84
+    right_encoder_count = (curfrpos - prevfrpos + curblpos - prevblpos)*60/84
+    prevflpos = flDrive.position(TURNS)
+    prevfrpos = frDrive.position(TURNS)
+    prevblpos = blDrive.position(TURNS)
+    prevbrpos = brDrive.position(TURNS)
+
+# Calculate the distance traveled by each wheel
+def get_wheel_distance(count):
+    global wheel_circumference
+    distance = wheel_circumference*count
+    return distance
+# Update the robot position and orientation based on the encoder counts
+def get_turns_from_distance(distance):
+    global wheel_circumference
+    count = distance/wheel_circumference
+    return count
+
+def update_position():
+    global x
+    global y 
+    global theta
+    global left_encoder_count
+    global right_encoder_count
+    global prevflpos
+    global prevfrpos
+    #// = to try
+    
+    distance_left = get_wheel_distance(left_encoder_count)
+    distance_right = get_wheel_distance(right_encoder_count)
+    #print("distance_left:", distance_left, ", distance_right:", distance_right)
+    #error in distance left and right calculations, 
+    distance_center = (distance_left+distance_right)/2
+    theta_change = (distance_left-distance_right)/(Dt+Dt)
+    #//theta_change = (inertial.heading(DEGREES)*Math.pi/180)-theta
+
+    #if(theta_change == 0):
+    #    x += distance_center
+    #    y += 0
+    #else:
+    #    dx += 2*((distance_back/theta_change)+Ts)*(math.sin(theta_change/2))
+    #    dy += 2*((distance_right/theta_change)+Tr)*(math.sin(theta_change/2))
+    
+    #beta = (theta + theta_change/2)
+
+    #update x and y global coords with distances calculated from front two wheels 
+    #x += dx*math.sin(beta) 
+    #y += dx*math.cos(beta)
+
+    #update x and y global coords with distances calculated from back wheel(and negative angle?? idk)
+    #x += dy*(-math.sin(beta))
+    #y += dy*math.cos(beta)
+
+    #the simpler one
+
+    beta = theta + (theta_change/2) #change in angle from y-axis = change in orientation / 2
+
+    #unlike the epilons method, this one only uses the distance travelled from front two wheels to calculate global x, y
+    #thus less accurate for strafe moments
+    #also unlike epilons method, in simple ver. distance_center is = dx/dy 
+    x += distance_center*math.sin(beta) 
+    y += distance_center*math.cos(beta)
+
+    theta += theta_change
+    #//theta = inertial.heading*Math.pi/180
+
+# create competition instance
+comp = Competition(user_control, autonomous)
+pre_autonomous()
+#End of Carol odometry code
+
+def pre_autonomous():
+    #inertial.calibrate()
+    #wait(2, SECONDS)
+    #print("calibrate done")
+    global x
+    global y
+    global theta
+    global left_encoder_count
+    global right_encoder_count
+    global prevflpos
+    global prevfrpos
+    global prevblpos
+    global prevbrpos
+    global Dt
+    while y<12:
+        measure_distance()
+        wait(10, MSEC)
+        update_position()
+        #print("motorspins:", frDrive.position(TURNS))
+        #print("final-x:", x, ", final-y:", y)
+    print("drive done")
+    wait(2, SECONDS)
+    measure_distance()
+    update_position()
+    print("final-x:", x, ", final-y:", y)
+    brain.screen.clear_screen()
+    brain.screen.print("pre-autonomous")
+    inertial.calibrate()
+    wait(2, SECONDS)
+
+def autonomous():
+
+    wait(1, MSEC)
+    # place automonous code here
+    brain.screen.clear_screen()
+    brain.screen.print("autonomous")
+    inertial.set_heading(0, DEGREES)
+    #start at the bottom left of the field
+
+    #shoot catapult
+    catapult.set_velocity(100, PERCENT)
+    catapult.spin(FORWARD)
+    wait(3, SECONDS)
+    catapult.stop()
+
+    #turn 90 degrees left 
+    frDrive.set_velocity(60, PERCENT)
+    flDrive.set_velocity(60, PERCENT)
+    brDrive.set_velocity(60, PERCENT)
+    blDrive.set_velocity(60, PERCENT)
+
+    print(inertial.heading)
+
+    while inertial.heading(DEGREES) != 270:
+        frDrive.spin(FORWARD)
+        flDrive.spin(FORWARD)
+        brDrive.spin(FORWARD)
+        blDrive.spin(FORWARD)
+
+        curInertial = inertial.heading(DEGREES)
+
+        if curInertial >= 260 or curInertial <= 280:
+            frDrive.stop()
+            flDrive.stop()
+            brDrive.stop()
+            blDrive.stop()
+
+    #turn 45 degrees right
+    while inertial.heading(DEGREES) != 315:
+
+        frDrive.spin(REVERSE)
+        flDrive.spin(REVERSE)
+        brDrive.spin(REVERSE)
+        blDrive.spin(REVERSE)
+
+        curInertial = inertial.heading(DEGREES)
+
+        if curInertial >= 305 or curInertial <= 325:
+            frDrive.stop()
+            flDrive.stop()
+            brDrive.stop()
+            blDrive.stop()
+
+    #test driving forward
+    frDrive.spin_for(FORWARD, 90, DEGREES, wait = False)
+    flDrive.spin_for(FORWARD, 90, DEGREES, wait = False)
+    brDrive.spin_for(FORWARD, 90, DEGREES, wait = False)
+    blDrive.spin_for(FORWARD, 90, DEGREES, wait = False)
+
+def user_control():
+    wait(1, MSEC)
+
+
+
+
+pre_autonomous()
+autonomous()
