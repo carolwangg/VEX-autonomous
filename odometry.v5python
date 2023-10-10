@@ -6,10 +6,11 @@ import urandom
 brain=Brain()
 
 # Robot configuration code
-flDrive = Motor(Ports.PORT11, GearSetting.RATIO_6_1, True)
-frDrive = Motor(Ports.PORT20, GearSetting.RATIO_6_1, False)
-track = Motor(Ports.PORT5, GearSetting.RATIO_6_1, False)
-inertial = Inertial(Ports.PORT15)
+flDrive = Motor(Ports.PORT20, GearSetting.RATIO_18_1, True)
+frDrive = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
+inertial = Inertial(Ports.PORT12)
+brDrive = Motor(Ports.PORT13, GearSetting.RATIO_18_1, False)
+blDrive = Motor(Ports.PORT18, GearSetting.RATIO_18_1, True)
 
 
 # wait for rotation sensor to fully initialize
@@ -46,7 +47,12 @@ from vex import *
 # Initialize robot position and orientation
 x = 0
 y = 0
+x_s = 0
+y_s = 0
 theta = 0
+prevtheta = 0
+theta_s = 0
+prevtheta_s = 0
 
 # Initialize wheel encoder counts
 left_encoder_count = 0
@@ -59,12 +65,9 @@ x = 0
 y = 0
 
 # Set the wheel diameter and the distance between the wheels
-wheel_circumference = 4*math.pi #inches, 36:84 gear ratio
-#5.3-6.4
-#13.8
-#distance from tracking centre will need to be recalibrated after new chassis made
-Tr = 6.2
-Tl = 6.2
+wheel_circumference = 4*math.pi #inches, 60:84 gear ratio
+Tr = 6.25 #5.75-6.75 wheel inside/outside distance from center
+Tl = 6.25
 Ts = 0
 # Begin project code
 prevflpos = 0
@@ -92,46 +95,50 @@ def function2():
         #math is not wrong. but sampling rate seems to be too low
         curflpos = flDrive.position(TURNS)
         curfrpos = frDrive.position(TURNS)
-        left_encoder_count = (curflpos-prevflpos)*36/84
-        right_encoder_count = (curfrpos-prevfrpos)*36/84
+        left_encoder_count = (curflpos-prevflpos)*60/84
+        right_encoder_count = (curfrpos-prevfrpos)*60/84
         
         prevflpos = flDrive.position(TURNS)
         prevfrpos = frDrive.position(TURNS)
         #frDrive.spin(FORWARD)
         #flDrive.spin(FORWARD)
-        #back_encoder_count = bDrive.position(TURNS)*36/84
+        #back_encoder_count = bDrive.position(TURNS)*60/84
         update_position()
         #print("theta:", theta)
         #print("tracking wheel:", track.position(TURNS))
         #print("frpos", frDrive.position(TURNS), "flpos", flDrive.position(TURNS))
         #print("x:", x, ", y:", y)
         #print("frDrive.position:", frDrive.position(TURNS), "flDrive.position:", flDrive.position(TURNS))
-        #print((((get_wheel_distance(flDrive.position(TURNS)-frDrive.position(TURNS)))*3/7)/12.4)*(180/math.pi))
+        #print((((get_wheel_distance(flDrive.position(TURNS)-frDrive.position(TURNS)))*60/84)/12.4)*(180/math.pi))
         wait(10, MSEC)
     frDrive.stop()
     flDrive.stop()
     wait(2, SECONDS)
     curflpos = flDrive.position(TURNS)
     curfrpos = frDrive.position(TURNS)
-    left_encoder_count = (curflpos-prevflpos)*36/84
-    right_encoder_count = (curfrpos-prevfrpos)*36/84
+    left_encoder_count = (curflpos-prevflpos)*60/84
+    right_encoder_count = (curfrpos-prevfrpos)*60/84
     prevflpos = flDrive.position(TURNS)
     prevfrpos = frDrive.position(TURNS)
     update_position()
     print("theta(sensor):", inertial.heading(DEGREES))
-    print("thetacalc2=", (((get_wheel_distance(flDrive.position(TURNS)-frDrive.position(TURNS)))*3/7)/12.4)*(180/math.pi))
+    print("thetacalc2=", (((get_wheel_distance(avgleft()-avgright()))*3/7)/12.4)*(180/math.pi)) #trying to determine most accurate diameter
     print("theta(calc):", theta*180/math.pi)
     #print("tracking wheel:", track.position(TURNS))
     #print("final-x:", x, ", final-y:", y, ", final theta(calc):", theta*180/math.pi, ", theta(sensor):", inertial.heading(DEGREES))
+
+
 def function1():
+    #to test distance calculations, moving robot by hand
     inertial.calibrate()
     wait(2, SECONDS)
     print("wait done")
-    flDrive.set_velocity(20, PERCENT)
-    frDrive.set_velocity(20, PERCENT)
     global x
     global y
     global theta
+    global x_s
+    global y_s
+    global theta_s
     global left_encoder_count
     global right_encoder_count
     global back_encoder_count
@@ -139,43 +146,27 @@ def function1():
     global prevfrpos
     global Tr
     global Tl
-    brain.screen.clear_screen()
-    brain.screen.print("preauton")
     # place driver control in this while loop
     frDrive.set_stopping(COAST)
     flDrive.set_stopping(COAST)
     
     #Y VALUE IS INCONSISTENT, BUT PRETTY ACCURATE. probably because of chassis limitations/no pid
     
-    while brain.timer.time(SECONDS)<10:
-        #frDrive.spin(FORWARD)
-        #flDrive.spin(FORWARD)
+    while brain.timer.time(SECONDS)<20:
         #refresh variables
+        measure_distance()
         #math is not wrong. but sampling rate seems to be too low
-        #variable updating(include before each update_position)
-        curflpos = flDrive.position(TURNS)
-        curfrpos = frDrive.position(TURNS)
-        left_encoder_count = (curflpos-prevflpos)*36/84  #36/84 is ratio of gear from motor to wheels
-        right_encoder_count = (curfrpos-prevfrpos)*36/84
-        prevflpos = flDrive.position(TURNS)
-        prevfrpos = frDrive.position(TURNS)
         #call position update function
         update_position()
+        update_position_s()
         wait(10, MSEC)
-    #frDrive.stop()
-    #flDrive.stop()
+    #final calculations made after finished moving to ensure no error from momentum
     wait(100, MSEC)
-    curflpos = flDrive.position(TURNS)
-    curfrpos = frDrive.position(TURNS)
-    left_encoder_count = (curflpos-prevflpos)*36/84
-    right_encoder_count = (curfrpos-prevfrpos)*36/84
-    prevflpos = flDrive.position(TURNS)
-    prevfrpos = frDrive.position(TURNS)
+    measure_distance()
     update_position()
-    print("theta(sensor):", inertial.heading(DEGREES))
-    print("theta(calc):", theta*180/math.pi)
-    print("thetacalc2=", (((get_wheel_distance(flDrive.position(TURNS)-frDrive.position(TURNS)))*3/7)/12.4)*(180/math.pi))
-    print("final-x:", x, ", final-y:", y)
+    update_position_s()
+    print(anglewrapdeg(inertial.heading(DEGREES)), ",", theta*180/math.pi, ",", x, ",", y)
+    print(anglewrapdeg(inertial.heading(DEGREES)), ",", anglewrapdeg(theta_s*180/math.pi), ",", x_s, ",", y_s)
 
 def pre_autonomous():
     #inertial.calibrate()
@@ -194,8 +185,8 @@ def pre_autonomous():
     while y<12:
         curflpos = flDrive.position(TURNS)
         curfrpos = frDrive.position(TURNS)
-        left_encoder_count = (curflpos-prevflpos)*36/84
-        right_encoder_count = (curfrpos-prevfrpos)*36/84
+        left_encoder_count = (curflpos-prevflpos)*60/84
+        right_encoder_count = (curfrpos-prevfrpos)*60/84
         prevflpos = flDrive.position(TURNS)
         prevfrpos = frDrive.position(TURNS)
         wait(10, MSEC)
@@ -206,8 +197,8 @@ def pre_autonomous():
     wait(2, SECONDS)
     curflpos = flDrive.position(TURNS)
     curfrpos = frDrive.position(TURNS)
-    left_encoder_count = (curflpos-prevflpos)*36/84
-    right_encoder_count = (curfrpos-prevfrpos)*36/84
+    left_encoder_count = (curflpos-prevflpos)*60/84
+    right_encoder_count = (curfrpos-prevfrpos)*60/84
     prevflpos = flDrive.position(TURNS)
     prevfrpos = frDrive.position(TURNS)
     update_position()
@@ -233,14 +224,23 @@ def get_turns_from_distance(distance):
     count = distance/wheel_circumference
     return count
 
+def measure_distance():
+    global curflpos, curfrpos, theta_s, left_encoder_count, right_encoder_count, prevflpos, prevfrpos
+    curflpos = avgleft()
+    curfrpos = avgright()
+    theta_s = (inertial.heading()*math.pi)/180
+    left_encoder_count = (curflpos-prevflpos)*60/84  #60/84 is ratio of gear from motor to wheels
+    right_encoder_count = (curfrpos-prevfrpos)*60/84
+    prevflpos = curflpos
+    prevfrpos = curfrpos
+
 def update_position():
     global x
     global y 
     global theta
+    global prevtheta
     global left_encoder_count
     global right_encoder_count
-    global prevflpos
-    global prevfrpos
     #// = to try
     
     distance_left = get_wheel_distance(left_encoder_count)
@@ -250,16 +250,75 @@ def update_position():
     distance_back = get_wheel_distance(back_encoder_count)
     distance_center = (distance_left+distance_right)/2
     theta_change = (distance_left-distance_right)/(Tr+Tl)
-    #//theta_change = (inertial.heading(DEGREES)*Math.pi/180)-theta
+
+    #//just added
+    if(theta_change == 0):
+       dy = distance_center
+    else:
+       dy = 2*((distance_right/theta_change)+Tr)*(math.sin(theta_change/2))
+
+    #theta_change = theta-prevtheta
 
     #if(theta_change == 0):
-    #    x += distance_center
-    #    y += 0
+    #    dy = distance_center
+    #    dx = distance_back
     #else:
-    #    dx += 2*((distance_back/theta_change)+Ts)*(math.sin(theta_change/2))
-    #    dy += 2*((distance_right/theta_change)+Tr)*(math.sin(theta_change/2))
+    #    dx = 2*((distance_back/theta_change)+Ts)*(math.sin(theta_change/2)) #change in distance driven forward
+    #    dy = 2*((distance_right/theta_change)+Tr)*(math.sin(theta_change/2)) #drift
     
     #beta = (theta + theta_change/2)
+
+    #update x and y global coords with distances calculated from front two wheels 
+    #x += dy*math.sin(beta) 
+    #y += dy*math.cos(beta)
+
+    #update x and y global coords with distances calculated from back wheel(and negative angle?? idk)
+    #x += dx*(-math.sin(beta))
+    #y += dx*math.cos(beta)
+
+    #the simpler one
+
+    beta = theta + (theta_change/2) #change in angle from y-axis = change in orientation / 2
+
+    #unlike the epilons method, this one only uses the distance travelled from front two wheels to calculate global x, y
+    #thus less accurate for strafe moments
+    #also unlike epilons method, in simple ver. distance_center is = dx/dy 
+    x += dy*math.sin(beta) 
+    y += dy*math.cos(beta)
+
+    theta += theta_change
+    #prevtheta = theta
+def update_position_s():
+    global x_s
+    global y_s
+    global theta_s
+    global prevtheta_s
+    global left_encoder_count
+    global right_encoder_count
+    #// = to try
+    
+    distance_left = get_wheel_distance(left_encoder_count)
+    distance_right = get_wheel_distance(right_encoder_count)
+    #print("distance_left:", distance_left, ", distance_right:", distance_right)
+    #error in distance left and right calculations, 
+    distance_back = get_wheel_distance(back_encoder_count)
+    distance_center = (distance_left+distance_right)/2
+    #theta_change = (distance_left-distance_right)/(Tr+Tl)
+    theta_change = theta_s-prevtheta_s
+
+    if(theta_change == 0):
+       dy = distance_center
+    else:
+       dy = 2*((distance_right/theta_change)+Tr)*(math.sin(theta_change/2))
+
+    #if(theta_change == 0):
+    #    dx = distance_back 
+    #    dy = distance_center
+    #else:
+    #    dx = 2*((distance_back/theta_change)+Ts)*(math.sin(theta_change/2)) #change in distance driven forward
+    #    dy = 2*((distance_right/theta_change)+Tr)*(math.sin(theta_change/2)) #drift
+    
+    #beta = (prevtheta_s + theta_change/2)
 
     #update x and y global coords with distances calculated from front two wheels 
     #x += dx*math.sin(beta) 
@@ -271,17 +330,29 @@ def update_position():
 
     #the simpler one
 
-    beta = theta + (theta_change/2) #change in angle from y-axis = change in orientation / 2
+    beta = prevtheta_s + (theta_change/2) #change in angle from y-axis = change in orientation / 2
 
     #unlike the epilons method, this one only uses the distance travelled from front two wheels to calculate global x, y
     #thus less accurate for strafe moments
     #also unlike epilons method, in simple ver. distance_center is = dx/dy 
-    x += distance_center*math.sin(beta) 
-    y += distance_center*math.cos(beta)
+    x_s += dy*math.sin(beta) 
+    y_s += dy*math.cos(beta)
 
-    theta += theta_change
-    #//theta = inertial.heading*Math.pi/180
-
+    #theta += theta_change
+    prevtheta_s = theta_s
+def avgleft():
+    result = (flDrive.position(TURNS) + blDrive.position(TURNS))/2
+    return result
+def avgright():
+    result = (frDrive.position(TURNS) + brDrive.position(TURNS))/2
+    return result
+def anglewrapdeg(deg):
+    #converts angles above 180 to a negative angle under 180 and vice versa
+    if(deg>180):
+        deg = deg - 360
+    elif(deg<-180):
+        deg = deg + 360
+    return deg
 # create competition instance
-comp = Competition(user_control, autonomous)
-pre_autonomous()
+function1()
+
