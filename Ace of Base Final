@@ -1,0 +1,390 @@
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+controller_1 = Controller(PRIMARY)
+frDrive = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
+flDrive = Motor(Ports.PORT20, GearSetting.RATIO_18_1, True)
+brDrive = Motor(Ports.PORT13, GearSetting.RATIO_18_1, False)
+blDrive = Motor(Ports.PORT18, GearSetting.RATIO_18_1, True)
+inertial = Inertial(Ports.PORT12)
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:      VEXcode Project
+#	Author:       VEX
+#	Created:
+#	Description:  VEXcode V5 Python Project
+# 
+# ------------------------------------------
+
+# Library imports
+from vex import *
+#differences from skills: removed all integral/derivative in pids
+#used anglewrap in pids
+#removed wait times, if isn't accurate enough, will readd them in
+
+def autonomous():
+    brain.screen.print("autonomous")
+    inertial.calibrate()
+    wait(2, SECONDS)
+    #PROGRAMMING SKILLS
+
+    #velocities/braking
+    drivesetpercent(70)
+    drivesetstop(BRAKE)
+
+    #vars
+    setpoint1 = 0 #for PID distance
+    curInertial = inertial.heading(DEGREES)
+    turnNum = 0 #for aleena turn fxs
+
+    #start code
+    setpoint1 = 5.04
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    #first turn, right 90
+    while turnNum != 1:
+        
+        frDrive.set_velocity(-70,PERCENT)
+        brDrive.set_velocity(-70,PERCENT)
+        flDrive.set_velocity(70,PERCENT)
+        blDrive.set_velocity(70,PERCENT)
+        frDrive.spin(FORWARD)
+        brDrive.spin(FORWARD)
+        flDrive.spin(FORWARD)
+        blDrive.spin(FORWARD)
+        curInertial = inertial.heading(DEGREES)
+
+        if curInertial >= 83 and curInertial <= 97:
+            drivestop()
+            turnNum = 1
+            print(inertial.heading(DEGREES))
+    wait(250, MSEC)
+
+    setpoint1 = avgturns() + 5.2
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        print("executed")
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    #second turn, left 0
+    while turnNum != 2:
+        frDrive.set_velocity(70,PERCENT)
+        brDrive.set_velocity(70,PERCENT)
+        flDrive.set_velocity(-70,PERCENT)
+        blDrive.set_velocity(-70,PERCENT)
+        frDrive.spin(FORWARD)
+        brDrive.spin(FORWARD)
+        flDrive.spin(FORWARD)
+        blDrive.spin(FORWARD)
+
+        curInertial = inertial.heading(DEGREES)
+
+        if curInertial >= -7 and curInertial <= 7:
+            frDrive.stop()
+            flDrive.stop()
+            brDrive.stop()
+            blDrive.stop()
+            turnNum = 2
+            print(inertial.heading(DEGREES))
+    wait(250, MSEC)
+
+    setpoint1 = avgturns() + 5
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    #third turn, left 270
+    while turnNum != 3:
+        frDrive.set_velocity(70,PERCENT)
+        brDrive.set_velocity(70,PERCENT)
+        flDrive.set_velocity(-70,PERCENT)
+        blDrive.set_velocity(-70,PERCENT)
+        frDrive.spin(FORWARD)
+        brDrive.spin(FORWARD)
+        flDrive.spin(FORWARD)
+        blDrive.spin(FORWARD)
+
+        curInertial = inertial.heading(DEGREES)
+
+        if curInertial >= 263 and curInertial <= 277:
+            frDrive.stop()
+            flDrive.stop()
+            brDrive.stop()
+            blDrive.stop()
+            turnNum = 3
+            print(inertial.heading(DEGREES))
+    wait(250, MSEC)
+
+    setpoint1 = avgturns() + 4.97
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+    
+    #fourth turn, right 0
+    while turnNum != 4:
+        frDrive.set_velocity(-70,PERCENT)
+        brDrive.set_velocity(-70,PERCENT)
+        flDrive.set_velocity(70,PERCENT)
+        blDrive.set_velocity(70,PERCENT)
+        frDrive.spin(FORWARD)
+        brDrive.spin(FORWARD)
+        flDrive.spin(FORWARD)
+        blDrive.spin(FORWARD)
+
+        curInertial = inertial.heading(DEGREES)
+
+        if curInertial >= -7 and curInertial <= 7:
+            frDrive.stop()
+            flDrive.stop()
+            brDrive.stop()
+            blDrive.stop()
+            turnNum = 4
+            print(inertial.heading(DEGREES))
+    wait(0.5, SECONDS)
+
+    setpoint1 = avgturns() + 5.33
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+def autonomous2():
+    brain.screen.print("autonomous")
+    inertial.calibrate()
+    wait(2, SECONDS)
+    #PROGRAMMING SKILLS
+
+    #velocities/braking
+    drivesetpercent(70)
+    drivesetstop(BRAKE)
+
+    #vars
+    setpoint1 = 0 #for PID distance
+    curInertial = inertial.heading(DEGREES)
+    turnNum = 0 #for aleena turn fxs
+
+    #start code
+    setpoint1 = 5.04
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    #first turn, left 90
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(-90, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(-90, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns() + 5.2
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        print("executed")
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+    
+
+    #second turn, right 0
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(0, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(0, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns() + 5.2
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    #third turn, right 90
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(90, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(90, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns() + 5
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+    
+    #fourth turn, right 0
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(0, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(0, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns() + 5.33
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+def autontest():
+    brain.screen.print("test")
+    inertial.calibrate()
+    wait(2, SECONDS)
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(-90, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(-90, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+#functions
+def piddrivepower1(setpoint, curposition):
+    #velocity
+    #go to motor.turns value inputted as "setpoint"
+    #if setpoint > curposition, drives forward. If not, reverses.
+    Kp = 70 #100
+    #can't set motor power...should i use voltage and pid or use velocity?
+    error = setpoint - curposition
+    drivepower = error*Kp
+    if drivepower> 100 or drivepower < -100:
+        if drivepower > 0:
+            coeff = 1
+        else:
+            coeff = -1
+        drivepower = 100*coeff
+        #makes sure turnpower not over 100% rpm
+    #10
+    # if 0 <=drivepower < 2:
+    #     drivepower = 2
+    # if -2 <drivepower <0:
+    #     drivepower = -2
+    # #0.01
+    # if -0.01<error<0.01:
+    #     drivepower=0
+    if 0 <=drivepower < 8:
+        drivepower = 8
+    if -8 <drivepower <0:
+        drivepower = -8
+    #0.01
+    if -0.1<error<0.1:
+        drivepower=0
+    return drivepower
+
+def pidturnpower2(setpoint, curposition):
+    global lasterrorturn
+    #velocity PID turning
+    #set right motors to reverse, left to forward
+    #if setpoint>curposition, turns right. else, turns left
+    #have to test with chord attached, might be turning around the 0 line but don't know why
+    #Kp = 0.42
+    Kp = 0.9
+    error = setpoint - curposition
+    turnpower = error*Kp
+    if turnpower> 100:
+        turnpower = 100
+        #makes sure turnpower not over 100% rpm
+    # if 0<turnpower<1:
+    #     turnpower=1
+    # elif 0>turnpower>-1:
+    #     turnpower=-1
+    # if -0.5<error<0.5:
+    #     turnpower = 0
+
+    if 0<turnpower<3:
+        turnpower=3
+    elif 0>turnpower>-3:
+        turnpower=-3
+    if -1<error<1:
+        turnpower = 0
+    return turnpower
+
+def driveforwardpercent(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+def drivestop():
+    frDrive.stop()
+    flDrive.stop()
+    brDrive.stop()
+    blDrive.stop()
+def turnrightpercent(userinput):
+    #negative right and positive left motor velocities, to reverse right and go fwd with left
+    frDrive.set_velocity(-userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(-userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+def turnleftpercent(userinput):
+    #negative left and positive right motor velocities, to reverse right and go fwd with left
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(-userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(-userinput,PERCENT)
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+
+def drivesetpercent(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+def drivesetstop(userinput):
+    frDrive.set_stopping(userinput)
+    flDrive.set_stopping(userinput)
+    brDrive.set_stopping(userinput)
+    blDrive.set_stopping(userinput)
+
+def avgturns():
+    avg = (frDrive.position(TURNS) + flDrive.position(TURNS) + brDrive.position(TURNS) + blDrive.position(TURNS))/4
+    return avg
+def anglewrapdeg(deg):
+    #converts angles above 180 to a negative angle under 180 and vice versa
+    if(deg>180):
+        deg = deg - 360
+    elif(deg<-180):
+        deg = deg + 360
+    return deg
+
+autonomous2()
+# Begin project code
