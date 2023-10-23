@@ -1,0 +1,140 @@
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+brDrive = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
+frDrive = Motor(Ports.PORT13, GearSetting.RATIO_18_1, False)
+flDrive = Motor(Ports.PORT18, GearSetting.RATIO_18_1, True)
+blDrive = Motor(Ports.PORT20, GearSetting.RATIO_18_1, True)
+controller_1 = Controller(PRIMARY)
+catapult = Motor(Ports.PORT15, GearSetting.RATIO_18_1, True)
+digitaloutH = DigitalOut(brain.three_wire_port.h)
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:
+#	Author:
+#	Created:
+#	Configuration:
+# 
+# ------------------------------------------
+
+# Library imports
+from vex import *
+
+# Begin project code
+
+def pre_autonomous():
+    # actions to do when the program starts
+    brain.screen.clear_screen()
+    brain.screen.print("pre auton code")
+    wait(1, SECONDS)
+
+def autonomous():
+    brain.screen.clear_screen()
+    brain.screen.print("autonomous code")
+    # place automonous code here
+
+def user_control():
+    brain.screen.clear_screen()
+    # place driver control in this while loop
+    frDrive.set_stopping(BRAKE)
+    brDrive.set_stopping(BRAKE)
+    flDrive.set_stopping(BRAKE)
+    blDrive.set_stopping(BRAKE)
+    catapult.set_velocity(50, PERCENT)
+    
+    while True:
+        fbSpeed = controller_1.axis3.position()
+        lrSpeed = controller_1.axis4.position()
+        
+        #drivecode
+        if fbSpeed<=5 and fbSpeed>=-5:
+            fbSpeed = 0
+        if lrSpeed<=5 and lrSpeed>=-5:
+            lrSpeed = 0
+        if lrSpeed != 0 or fbSpeed != 0:
+            frDrive.spin(FORWARD)
+            flDrive.spin(FORWARD)
+            blDrive.spin(FORWARD)
+            brDrive.spin(FORWARD)
+            frDrive.set_velocity(fbSpeed-lrSpeed, PERCENT)
+            flDrive.set_velocity(fbSpeed+lrSpeed, PERCENT)
+            brDrive.set_velocity(fbSpeed-lrSpeed, PERCENT)
+            blDrive.set_velocity(fbSpeed+lrSpeed, PERCENT)
+        else:
+            
+            if(controller_1.buttonX.pressing()):
+                drivesetstop(BRAKE)
+                drivestop()
+                print("hello")
+            else:
+                drivestop2()
+        #other motions
+        if controller_1.buttonA.pressing():
+            #kicker start
+            catapult.spin(FORWARD)
+        elif controller_1.buttonB.pressing():
+            #kicker stop
+            catapult.stop()
+        if controller_1.buttonR1.pressing():
+            #expand wings
+            digitaloutH.set(True)
+        elif controller_1.buttonL1.pressing():
+            #contract wings
+            digitaloutH.set(False)
+        if controller_1.buttonUp.pressing():
+            controller_1.screen.set_cursor(0,0)
+            controller_1.print("fr:", frDrive.temperature(PERCENT))
+            controller_1.screen.set_cursor(1,0)
+            controller_1.print("cata:", catapult.temperature(PERCENT))
+        elif frDrive.temperature(PERCENT) > 80:
+            brain.screen.set_cursor(0,0)
+            controller_1.print("drive motors over 80")
+        else:
+            controller_1.screen.clear_row(0)
+            controller_1.screen.clear_row(1)
+        print("motor turns:", frDrive.position(TURNS))
+        print("degrees:" inertial.heading(DEGREES))
+def drivestop():
+    frDrive.stop()
+    flDrive.stop()
+    brDrive.stop()
+    blDrive.stop()
+def drivestop2():
+    drivesetstop(COAST)
+    frDrive.stop()
+    flDrive.stop()
+    brDrive.stop()
+    blDrive.stop()   
+    wait(100, MSEC)
+    drivesetstop(BRAKE)
+def drivesetstop(userinput):
+    frDrive.set_stopping(userinput)
+    flDrive.set_stopping(userinput)
+    brDrive.set_stopping(userinput)
+    blDrive.set_stopping(userinput)
+comp = Competition(user_control, autonomous)
+pre_autonomous()
