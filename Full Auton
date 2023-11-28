@@ -1,0 +1,177 @@
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+brDrive = Motor(Ports.PORT20, GearSetting.RATIO_6_1, False)
+frDrive = Motor(Ports.PORT18, GearSetting.RATIO_6_1, False)
+flDrive = Motor(Ports.PORT13, GearSetting.RATIO_6_1, True)
+blDrive = Motor(Ports.PORT11, GearSetting.RATIO_6_1, True)
+controller_1 = Controller(PRIMARY)
+arm = Motor(Ports.PORT12, GearSetting.RATIO_18_1, False)
+inertials = Inertial(Ports.PORT14)
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:      VEXcode Project
+#	Author:       VEX
+#	Created:
+#	Description:  VEXcode V5 Python Project
+# 
+# ------------------------------------------
+
+# Library imports
+from vex import *
+brain.screen.print("Ravens <3")
+
+curRight = 0
+curLeft = 0
+
+#measure later
+turnmea = 0
+unit = 1.3
+
+def pre_autonomous():
+    wait(2, SECONDS)
+    print("calibrate done")
+
+def fullStop():
+    frDrive.stop()
+    brDrive.stop()
+    flDrive.stop()
+    blDrive.stop()
+
+def forward():
+    frDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+
+def reverse():
+    frDrive.spin(REVERSE)
+    brDrive.spin(REVERSE)
+    flDrive.spin(REVERSE)
+    blDrive.spin(REVERSE)
+
+def turnLeft():
+    frDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+    flDrive.spin(REVERSE)
+    blDrive.spin(REVERSE)
+
+def turnRight():
+    frDrive.spin(REVERSE)
+    brDrive.spin(REVERSE)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+
+def anglewrapdeg(deg):
+    if deg < 10:
+        deg = 360
+    return deg
+
+def autonomous():
+
+    wait(1, MSEC)
+    # place automonous code here
+    brain.screen.clear_screen()
+    brain.screen.print("autonomous")
+
+    #callibrate
+    wait(2, SECONDS)
+
+    #start at the bottom left of the field
+    frDrive.set_velocity(60, PERCENT)
+    brDrive.set_velocity(60, PERCENT)
+    flDrive.set_velocity(60, PERCENT)
+    blDrive.set_velocity(60, PERCENT)
+    frDrive.set_stopping(BRAKE)
+    brDrive.set_stopping(BRAKE)
+    flDrive.set_stopping(BRAKE)
+    blDrive.set_stopping(BRAKE)
+
+    #go reverse
+
+    while frDrive.position(TURNS) > -unit - 1:
+        reverse()
+
+    fullStop()
+    wait(500, MSEC)
+
+    #turn 90 degrees left
+    while anglewrapdeg(inertials.heading(DEGREES)) > 300:
+        turnLeft()
+    
+    fullStop()
+    wait(500, MSEC)
+
+    goal = frDrive.position(TURNS) - unit/2
+    #back up to match load zone
+    while frDrive.position(TURNS) > goal:
+        reverse()
+    
+    fullStop()
+    wait(500, MSEC)
+
+    arm.set_velocity(60, PERCENT)
+    arm.spin_to_position(180, DEGREES)
+    wait(3, SECONDS)
+
+    #turn 225 degrees left
+    while inertials.heading(DEGREES) > 45:
+        turnLeft()
+    
+    fullStop()
+    wait(1, SECONDS)
+
+    arm.spin_to_position(0, DEGREES)
+    wait(4, SECONDS)
+
+    #push triball into goal
+    goal = frDrive.position(TURNS) + unit
+    while frDrive.position(TURNS) < goal:
+        forward()
+
+    fullStop()
+    wait(1, SECONDS)
+
+    #turn 110 degrees right
+    while inertials.heading(DEGREES) < 155:
+        turnRight()
+
+    fullStop()
+    wait(1, SECONDS)
+
+    arm.spin_to_position(180, DEGREES)
+
+    #drive forward until touching extension bar
+    goal = frDrive.position(TURNS) + unit
+    while frDrive.position(TURNS) < goal:
+        forward()
+
+def user_control():
+    wait(1, MSEC)
+
+pre_autonomous()
+autonomous()
