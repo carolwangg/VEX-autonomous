@@ -1,0 +1,306 @@
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+inertials = Inertial(Ports.PORT5)
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:      VEXcode Project
+#	Author:       VEX
+#	Created:
+#	Description:   V5 Python Project
+# 
+# ------------------------------------------
+
+
+
+# Library imports
+from vex import *
+
+# CLASSES
+
+class Button:
+    global row_to_pixel, column_to_pixel
+    textColour = Color.WHITE
+    def __init__(self, colour, borderWidth, borderColour, s, textX, textY, addWidth, addHeight):
+        self.s = s
+        self.textX = textX
+        self.textY = textY
+        length = len(s)
+        #x and y of button are at center of word
+        #remember: row & column numbers start at 1, not at 0, that's why textX - 1 and textYz
+        x = ((textX-1) + length/2)*column_to_pixel
+        y = ((textY-1) + 0.5)*row_to_pixel
+        textWidth = length*column_to_pixel
+        textHeight = row_to_pixel
+        #all values that are going into a VEX function have to be rounded
+        self.width = addWidth + textWidth
+        self.height = addHeight + textHeight
+        self.x = round(x - self.width/2)
+        self.y = round(y - self.height/2)
+        self.colour = colour
+        self.borderWidth = borderWidth
+        self.borderColour = borderColour
+    def setColour(self, colour):
+        self.colour = colour
+    def setBorder(self, borderWidth, borderColour):
+        self.borderWidth = borderWidth
+        self.borderColour = borderColour
+    def setTextColour(self, colour):
+        self.textColour = colour
+    def setText(self, s):
+        self.s = s
+    def drawButton(self):
+        drawRect(self.colour, self.borderWidth, self.borderColour, self.x, self.y, self.width, self.height)
+        brain.screen.set_cursor(self.textY,self.textX)
+        brain.screen.set_pen_color(self.textColour)
+        brain.screen.print(self.s)
+        brain.screen.set_pen_color(Color.WHITE)
+    def drawRoundButton(self, coeff):
+        radius = round(coeff*self.height/2)
+        print(radius)
+        x = self.x + radius
+        width = self.width-2*radius
+        height = self.height-2*radius
+        drawRect(self.colour, self.borderWidth, self.borderColour, x, self.y, width, self.height)
+        y = self.y + radius #since radius is half of height, which is additional to y of rect where circle y should start
+        brain.screen.set_fill_color(self.colour)
+        brain.screen.set_pen_width(self.borderWidth)
+        brain.screen.set_pen_color(self.borderColour)
+        brain.screen.draw_circle(x, y, radius)
+        brain.screen.draw_circle(x, y+height, radius)
+        brain.screen.draw_circle(x+width, y, radius)
+        brain.screen.draw_circle(x+width, y+height, radius)
+        drawRect(self.colour, self.borderWidth, self.borderColour, x, y, -radius, height)
+        drawRect(self.colour, self.borderWidth, self.borderColour, x+width, y, radius, height)
+        # drawRect(Color.GREEN, self.borderWidth, self.borderColour, x, y, width, -radius)
+        # drawRect(Color.GREEN, self.borderWidth, self.borderColour, x, y+height, width, radius)
+        brain.screen.set_cursor(self.textY,self.textX)
+        brain.screen.set_pen_color(self.textColour)
+        brain.screen.print(self.s)
+        brain.screen.set_pen_color(Color.WHITE)
+        brain.screen.set_pen_width(1)
+    def inBounds(self, x, y):
+        if(self.x<x<self.x+self.width and self.y<y<self.y+self.height):
+            return True
+        else:
+            return False
+
+
+# ------------------------------------------
+#       main
+# ------------------------------------------
+
+brain.screen.set_font(FontType.MONO20)
+
+#useful to convert percentage position to pixel position
+#ex: 50*x_percent gets pixel position at 50% of screen width
+x_percent = 480/100
+y_percent = 240/100
+
+#rows and columns change when brain font size changes
+rows = 12
+columns = 48
+row_percent = rows/100
+column_percent = columns/100
+row_to_pixel = 240/rows
+column_to_pixel = 480/columns
+
+#to create dropdown menu
+menuX = round(10*column_percent)
+menuY = round(20*row_percent)
+menuWidth = round(10*x_percent)
+menuHeight = round(5*y_percent)
+menu = Button(Color(0x2596be), 0, Color.TRANSPARENT, "AUTONS", menuX, menuY, menuWidth, menuHeight)
+#autons, motors, sensor (all 6 letters, will all be centered)
+
+#options ordered by alphabetical letter order
+aX = menuX
+aY = menuY
+aWidth = menuWidth
+aHeight = menuHeight
+
+#button specs
+#remember: row & column numbers start at 1, not at 0
+incrementY = round(25*row_percent)
+
+redX = round(10*column_percent)
+redY = round(50*row_percent)
+redWidth = round(10*x_percent)
+redHeight = round(5*y_percent)
+red = Button(Color.RED, 0, Color.TRANSPARENT, "RED", redX, redY, redWidth, redHeight)
+redOptionsX = round(40*column_percent)
+redOptionsY = round(25*row_percent)
+redOptions = (Button(Color.RED, 0, Color.TRANSPARENT, "Left", redOptionsX, redOptionsY, redWidth, redHeight), Button(Color.RED, 0, Color.TRANSPARENT, "Right", redOptionsX, redOptionsY+incrementY, redWidth, redHeight), Button(Color.RED, 0, Color.TRANSPARENT, "Both", redOptionsX, redOptionsY+2*incrementY, redWidth, redHeight))
+blueX = round(10*column_percent)
+blueY = round(70*row_percent)
+blueWidth = round(10*x_percent)
+blueHeight = round(5*y_percent)
+blue = Button(Color.BLUE, 0, Color.TRANSPARENT, "BLUE", blueX, blueY, blueWidth, blueHeight)
+blueOptionsX = round(40*column_percent)
+blueOptionsY = round(25*row_percent)
+blueOptions = (Button(Color.BLUE, 0, Color.TRANSPARENT, "Left", blueOptionsX, blueOptionsY, blueWidth, blueHeight), Button(Color.BLUE, 0, Color.TRANSPARENT, "Right", blueOptionsX, blueOptionsY+incrementY, blueWidth, blueHeight), Button(Color.BLUE, 0, Color.TRANSPARENT, "Both", blueOptionsX, blueOptionsY+2*incrementY, blueWidth, blueHeight))
+
+#updating
+FPS = 24
+f = 1000/FPS #milliseconds per update
+prevTime = 0
+curTime = 0 
+
+#vars
+screens = 1
+auton = 0 #1,2,3 for red, 4,5,6 for blue, 0 for default
+autonColor = 0 #1 is red, 2 is blue
+changeds = False
+changing = False
+
+def repaint(): 
+    global screens, changeds, changing
+    #check vars
+    brain.screen.set_fill_color(Color.BLACK)
+    brain.screen.draw_rectangle(-1,-1, 482, 242)
+    if(menu.inBounds(brain.screen.x_position(),brain.screen.y_position())):
+        if (changing is True and changeds is not True):
+            screens+=1
+            if screens is 4:
+                #max 3 screens, can't go to screen 4 have to restart at 1
+                screens = 1
+            if(screens is 1):
+                menu.setText("AUTONS")
+            elif(screens is 2):
+                menu.setText("MOTORS")
+            else:
+                menu.setText("SENSOR")
+            changeds = True
+    if(screens is 1):
+        screenOne()
+    elif (screens is 2):
+        screenTwo()
+    elif (screens is 3):
+        screenThree()
+    if (brain.screen.pressing()):
+        changing = False
+        changeds = False
+    if (brain.screen.pressing() is not True):
+        changing = True
+def screenOne():
+    global red, blue, menu, autonColor, auton
+    #track press
+    if(red.inBounds(brain.screen.x_position(),brain.screen.y_position())):
+        autonColor = 1
+    elif(blue.inBounds(brain.screen.x_position(),brain.screen.y_position())):
+        autonColor = 2
+    #render
+    if autonColor is 1:
+        if(redOptions[0].inBounds(brain.screen.x_position(),brain.screen.y_position())):
+            auton = 1
+        elif(redOptions[1].inBounds(brain.screen.x_position(),brain.screen.y_position())):
+            auton = 2
+        elif(redOptions[2].inBounds(brain.screen.x_position(),brain.screen.y_position())):
+            auton = 3
+    
+        red.setBorder(3, Color.YELLOW)
+        red.drawButton()
+        blue.drawButton()
+        if auton < 4 and auton is not 0:
+            redOptions[auton-1].setColour(Color.WHITE)
+            redOptions[auton-1].setTextColour(Color.RED)
+            redOptions[auton-1].setBorder(3,Color.RED)
+        redOptions[0].drawButton()
+        redOptions[1].drawButton()
+        redOptions[2].drawButton()
+        red.setBorder(0, Color.TRANSPARENT)
+        if auton < 4 and auton is not 0:
+            redOptions[auton-1].setColour(Color.RED)
+            redOptions[auton-1].setTextColour(Color.WHITE)
+            redOptions[auton-1].setBorder(0,Color.TRANSPARENT)
+    elif autonColor is 2:
+        if(blueOptions[0].inBounds(brain.screen.x_position(),brain.screen.y_position())):
+            auton = 4
+        elif(blueOptions[1].inBounds(brain.screen.x_position(),brain.screen.y_position())):
+            auton = 5
+        elif(blueOptions[2].inBounds(brain.screen.x_position(),brain.screen.y_position())):
+            auton = 6
+    
+        blue.setBorder(3, Color.YELLOW)
+        red.drawButton()
+        blue.drawButton()
+        if auton > 3:
+            blueOptions[auton-4].setColour(Color.WHITE)
+            blueOptions[auton-4].setTextColour(Color.BLUE)
+            blueOptions[auton-4].setBorder(3,Color.BLUE)
+        blueOptions[0].drawButton()
+        blueOptions[1].drawButton()
+        blueOptions[2].drawButton()
+        blue.setBorder(0, Color.TRANSPARENT)
+        if auton > 3:
+            blueOptions[auton-4].setColour(Color.BLUE)
+            blueOptions[auton-4].setTextColour(Color.WHITE)
+            blueOptions[auton-4].setBorder(0,Color.TRANSPARENT)
+    else:
+        red.drawButton()
+        blue.drawButton()
+    menu.drawButton()
+    brain.screen.render()
+def screenTwo():
+    global menu
+    #render
+    menu.drawButton()
+    brain.screen.render()
+def screenThree():
+    #render
+    menu.drawButton()
+    brain.screen.render()
+def pre_autonomous():
+    global prevTime, curTime, FPS
+    while 1:
+        curTime = brain.timer.time(MSEC)
+        if((curTime-prevTime)>=f):
+            prevTime = curTime
+            repaint()
+def drawRect(colour, borderWidth, borderColour, x, y, width, height):
+    brain.screen.set_fill_color(colour)
+    brain.screen.set_pen_width(borderWidth)
+    brain.screen.set_pen_color(borderColour)
+    brain.screen.draw_rectangle(x, y, width, height)
+    brain.screen.set_pen_width(1)
+    brain.screen.set_pen_color(Color.WHITE)
+
+def drawRoundButton(colour, borderWidth, borderColour, s, textX, textY, rect):
+    drawRect(colour, borderWidth, borderColour, rect[0], rect[1], rect[2], rect[3])
+    radius = round(rect[3]/2) #idk for some reason radius seems to be 1 px too big
+    y = rect[1] + radius #since radius is half of height, which is additional to y of rect where circle y should start
+    brain.screen.set_fill_color(colour)
+    brain.screen.set_pen_width(borderWidth)
+    brain.screen.set_pen_color(borderColour)
+    brain.screen.draw_circle(rect[0], y, radius)
+    brain.screen.draw_circle(rect[0]+rect[2], y, radius)
+    drawRect(colour, borderWidth, colour, rect[0], rect[1]+borderWidth, rect[2], rect[3]-(borderWidth*2))
+    brain.screen.set_cursor(textY,textX)
+    brain.screen.print(s)
+    brain.screen.set_pen_width(1)
+
+pre_autonomous()
