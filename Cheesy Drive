@@ -6,12 +6,11 @@ import urandom
 brain=Brain()
 
 # Robot configuration code
-frDrive = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
-flDrive = Motor(Ports.PORT20, GearSetting.RATIO_6_1, True)
-brDrive = Motor(Ports.PORT13, GearSetting.RATIO_6_1, False)
-blDrive = Motor(Ports.PORT18, GearSetting.RATIO_6_1, True)
+flDrive = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
+blDrive = Motor(Ports.PORT13, GearSetting.RATIO_18_1, False)
+frDrive = Motor(Ports.PORT20, GearSetting.RATIO_18_1, True)
+brDrive = Motor(Ports.PORT18, GearSetting.RATIO_18_1, True)
 controller_1 = Controller(PRIMARY)
-catapult = Motor(Ports.PORT15, GearSetting.RATIO_18_1, True)
 
 
 # wait for rotation sensor to fully initialize
@@ -33,10 +32,10 @@ print("\033[2J")
 
 # ------------------------------------------
 # 
-# 	Project:
-#	Author:
+# 	Project:      VEXcode Project
+#	Author:       VEX
 #	Created:
-#	Configuration:
+#	Description:  VEXcode V5 Python Project
 # 
 # ------------------------------------------
 
@@ -60,7 +59,8 @@ def skim(v):
     if (v > 0):
         return -(v * 0.1)
     elif (v < 0):
-        return -(v * 0.1)
+        return (v * 0.1)
+    return 0
     
 def user_control():
     brain.screen.clear_screen()
@@ -69,27 +69,29 @@ def user_control():
     brDrive.set_stopping(BRAKE)
     flDrive.set_stopping(BRAKE)
     blDrive.set_stopping(BRAKE)
-    catapult.set_velocity(50, PERCENT)
     
     while True:
-        fbSpeed = controller_1.axis1.position()
-        lrSpeed = controller_1.axis3.position()
+        fbSpeed = controller_1.axis3.position()
+        lrSpeed = controller_1.axis1.position()
         
         #drivecode
-        # if fbSpeed<=5 and fbSpeed>=-5:
-        #     fbSpeed = 0
-        # if lrSpeed<=5 and lrSpeed>=-5:
-        #     lrSpeed = 0
-        # if lrSpeed != 0 and fbSpeed != 0:
-        #     frDrive.set_velocity(fbSpeed - (lrSpeed + skim(fbSpeed)), PERCENT)
-        #     flDrive.set_velocity(fbSpeed + (lrSpeed + skim(fbSpeed)), PERCENT)
-        #     brDrive.set_velocity(fbSpeed - (lrSpeed + skim(fbSpeed)), PERCENT)
-        #     blDrive.set_velocity(fbSpeed + (lrSpeed + skim(fbSpeed)), PERCENT)
-        #     frDrive.spin(FORWARD)
-        #     flDrive.spin(FORWARD)
-        #     blDrive.spin(FORWARD)
-        #     brDrive.spin(FORWARD)
-        if lrSpeed != 0 and fbSpeed != 0:
+        if fbSpeed<=5 and fbSpeed>=-5:
+            fbSpeed = 0
+        if lrSpeed<=5 and lrSpeed>=-5:
+            lrSpeed = 0
+        if lrSpeed != 0 or fbSpeed != 0:
+            if lrSpeed > fbSpeed:                
+                lrSpeed += skim(fbSpeed)
+            frDrive.set_velocity((fbSpeed - lrSpeed), PERCENT)
+            print("fr:",(fbSpeed - lrSpeed))
+            flDrive.set_velocity((fbSpeed + lrSpeed), PERCENT)
+            brDrive.set_velocity((fbSpeed - lrSpeed), PERCENT)
+            blDrive.set_velocity((fbSpeed + lrSpeed), PERCENT)
+            frDrive.spin(FORWARD)
+            flDrive.spin(FORWARD)
+            blDrive.spin(FORWARD)
+            brDrive.spin(FORWARD)
+        elif lrSpeed != 0 and fbSpeed == 0:
             frDrive.set_velocity(fbSpeed - lrSpeed, PERCENT)
             flDrive.set_velocity(fbSpeed + lrSpeed, PERCENT)
             brDrive.set_velocity(fbSpeed - lrSpeed, PERCENT)
@@ -103,19 +105,6 @@ def user_control():
             brDrive.stop()
             blDrive.stop()
             flDrive.stop() 
-        #other motions
-        if controller_1.buttonA.pressing():
-            #kicker start
-            catapult.spin(FORWARD)
-        elif controller_1.buttonB.pressing():
-            #kicker stop
-            catapult.stop()
-        # if controller_1.buttonR1.pressing():
-            #expand wings
-            # digitaloutH.set(True)
-        #elif controller_1.buttonL1.pressing():
-            #contract wings
-            #digitaloutH.set(False)
         
 comp = Competition(user_control, autonomous)
 pre_autonomous()
