@@ -1,0 +1,151 @@
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+controller_1 = Controller(PRIMARY)
+brDrive = Motor(Ports.PORT20, GearSetting.RATIO_6_1, False)
+frDrive = Motor(Ports.PORT18, GearSetting.RATIO_18_1, False)
+flDrive = Motor(Ports.PORT13, GearSetting.RATIO_18_1, True)
+blDrive = Motor(Ports.PORT11, GearSetting.RATIO_18_1, True)
+digitaloutH = DigitalOut(brain.three_wire_port.h)
+inertials = Inertial(Ports.PORT14)
+arm = Motor(Ports.PORT12, GearSetting.RATIO_18_1, False)
+catapult = Motor(Ports.PORT15, GearSetting.RATIO_18_1, False)
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:      VEXcode Project
+#	Author:       VEX
+#	Created:
+#	Description:  VEXcode V5 Python Project
+# 
+# ------------------------------------------
+
+# Library imports
+from vex import *
+
+# Begin project code
+def skim(v):
+    # gain determines how much to skim off the top
+    if (v > 0):
+        return -(v * 0.1)
+    elif (v < 0):
+        return (v * 0.1)
+    return 0
+def main():
+    # controller_1.buttonUp.pressed(armSpinToPosition)
+    drivesetstop(BRAKE)
+    brain.screen.clear_screen()
+    catapult.set_velocity(100, PERCENT)
+    printed = False #for testing purposes
+    while True:
+        fbSpeed = controller_1.axis3.position()
+        lrSpeed = controller_1.axis4.position()
+
+        #drivecode
+        if lrSpeed > 45:
+            lrSpeed = 45
+        elif lrSpeed < -45:
+            lrSpeed = -45
+        if fbSpeed > 45:
+            fbSpeed = 45
+        elif fbSpeed < -45:
+            fbSpeed = -45
+        
+        if fbSpeed<=5 and fbSpeed>=-5:
+            fbSpeed = 0
+        if lrSpeed<=5 and lrSpeed>=-5:
+            lrSpeed = 0
+        if lrSpeed != 0 or fbSpeed != 0:
+            if lrSpeed > fbSpeed:                
+                lrSpeed += skim(fbSpeed)
+            frDrive.set_velocity((fbSpeed - lrSpeed), PERCENT)
+            flDrive.set_velocity((fbSpeed + lrSpeed), PERCENT)
+            brDrive.set_velocity((fbSpeed - lrSpeed), PERCENT)
+            blDrive.set_velocity((fbSpeed + lrSpeed), PERCENT)
+            frDrive.spin(FORWARD)
+            flDrive.spin(FORWARD)
+            blDrive.spin(FORWARD)
+            brDrive.spin(FORWARD)
+        elif lrSpeed != 0 and fbSpeed == 0:
+            if lrSpeed > fbSpeed:                
+                lrSpeed += skim(lrSpeed)
+            frDrive.set_velocity(-lrSpeed, PERCENT)
+            flDrive.set_velocity(lrSpeed, PERCENT)
+            brDrive.set_velocity(-lrSpeed, PERCENT)
+            blDrive.set_velocity(lrSpeed, PERCENT)
+            frDrive.spin(FORWARD)
+            flDrive.spin(FORWARD)
+            blDrive.spin(FORWARD)
+            brDrive.spin(FORWARD)
+        else:
+            drivestop()
+        #other motions
+        if controller_1.buttonA.pressing():
+            #kicker start
+            catapult.spin(FORWARD)
+        elif controller_1.buttonB.pressing():
+            #kicker stop
+            catapult.stop()
+        if controller_1.buttonR1.pressing():
+            #expand wings
+            digitaloutH.set(True)
+        elif controller_1.buttonL1.pressing():
+            #contract wings
+            digitaloutH.set(False)
+        else:
+            controller_1.screen.clear_row(3)
+        if controller_1.buttonX.pressing():
+            arm.set_velocity(50, PERCENT)
+            arm.set_stopping(HOLD)
+            arm.spin_to_position(60, DEGREES)
+            arm.stop()
+        if controller_1.buttonY.pressing():
+            arm.set_stopping(COAST)
+            arm.stop()
+        # for testing purposes
+        if controller_1.buttonR2.pressing():
+            if printed is False:
+                # print("lr turns:", encoder_s.position(TURNS))
+                print("degrees:", inertial.heading(DEGREES))
+                print("fl motor turns:", flDrive.position(TURNS))
+                # print("br motor turns:", brDrive.position(TURNS))
+                # print("bl motor turns:", blDrive.position(TURNS))
+                # print("armpos:", arm.position(DEGREES))
+                flDrive.set_position(0, TURNS)
+                controller_1.rumble(...)
+                printed = True
+        printed = False
+def drivestop():
+    frDrive.stop()
+    flDrive.stop()
+    brDrive.stop()
+    blDrive.stop()
+def drivesetstop(userinput):
+    frDrive.set_stopping(userinput)
+    flDrive.set_stopping(userinput)
+    brDrive.set_stopping(userinput)
+    blDrive.set_stopping(userinput)
+main()
