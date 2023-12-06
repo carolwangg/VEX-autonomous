@@ -6,13 +6,16 @@ import urandom
 brain=Brain()
 
 # Robot configuration code
-brDrive = Motor(Ports.PORT11, GearSetting.RATIO_18_1, False)
-frDrive = Motor(Ports.PORT13, GearSetting.RATIO_18_1, False)
-flDrive = Motor(Ports.PORT18, GearSetting.RATIO_18_1, True)
-blDrive = Motor(Ports.PORT20, GearSetting.RATIO_18_1, True)
+brDrive = Motor(Ports.PORT20, GearSetting.RATIO_6_1, False)
+frDrive = Motor(Ports.PORT18, GearSetting.RATIO_6_1, False)
+flDrive = Motor(Ports.PORT13, GearSetting.RATIO_6_1, True)
+blDrive = Motor(Ports.PORT11, GearSetting.RATIO_6_1, True)
 controller_1 = Controller(PRIMARY)
-catapult = Motor(Ports.PORT15, GearSetting.RATIO_18_1, True)
+catapult = Motor(Ports.PORT15, GearSetting.RATIO_36_1, False)
 digitaloutH = DigitalOut(brain.three_wire_port.h)
+inertial = Inertial(Ports.PORT14)
+arm = Motor(Ports.PORT12, GearSetting.RATIO_18_1, False)
+encoder_s = Encoder(brain.three_wire_port.a)
 
 
 # wait for rotation sensor to fully initialize
@@ -43,53 +46,75 @@ print("\033[2J")
 
 # Library imports
 from vex import *
-
+#47,17,39
 # Begin project code
 
+
 def pre_autonomous():
-    # actions to do when the program starts
-    brain.screen.clear_screen()
-    brain.screen.print("pre auton code")
     wait(1, SECONDS)
 
 def autonomous():
-    brain.screen.clear_screen()
-    brain.screen.print("autonomous code")
-    # place automonous code here
-
+    wait(1, SECONDS)
 def user_control():
-    brain.screen.clear_screen()
-    # place driver control in this while loop
-    frDrive.set_stopping(BRAKE)
-    brDrive.set_stopping(BRAKE)
-    flDrive.set_stopping(BRAKE)
-    blDrive.set_stopping(BRAKE)
-    catapult.set_velocity(50, PERCENT)
-    
-    while True:
-        fbSpeed = controller_1.axis3.position()
-        lrSpeed = controller_1.axis4.position()
-        
+    # controller_1.buttonUp.pressed(armSpinToPosition)
 
+    brain.screen.clear_screen()
+    catapult.set_velocity(100, PERCENT)
+    printed = False #for testing purposes
+    while True:
+        # fbSpeed = controller_1.axis3.position()**3/(100**2)
+        # lrSpeed = controller_1.axis1.position()**3/(100**2)
+        fbSpeed = controller_1.axis3.position()
+        lrSpeed = controller_1.axis1.position()
+
+        # armSpeed = controller_1.axis2.position()
+        # if abs(armSpeed) <= 5 or (-10 < arm.position(DEGREES) < 10 and armSpeed > 0):
+        #     armSpeed = 0
+        # if armSpeed != 0:
+        #     armSpeed = controller_1.axis2.position()
+        #     arm.spin(FORWARD)
+        #     arm.set_velocity(-armSpeed, PERCENT)
+        #     arm.set_stopping(COAST)
+        # else:
+        #     #if armMoving != true
+        #     arm.stop()
+        #drivecode
+        fbSpeed = controller_1.axis3.position()
+        lrSpeed = controller_1.axis1.position()
+        
         #drivecode
         if fbSpeed<=5 and fbSpeed>=-5:
             fbSpeed = 0
         if lrSpeed<=5 and lrSpeed>=-5:
             lrSpeed = 0
         if lrSpeed != 0 or fbSpeed != 0:
-            frDrive.set_velocity(fbSpeed-lrSpeed, PERCENT)
-            flDrive.set_velocity(fbSpeed+lrSpeed, PERCENT)
-            brDrive.set_velocity(fbSpeed-lrSpeed, PERCENT)
-            blDrive.set_velocity(fbSpeed+lrSpeed, PERCENT)
+            if lrSpeed > fbSpeed:                
+                lrSpeed += skim(fbSpeed)
+            frDrive.set_velocity((fbSpeed - lrSpeed), PERCENT)
+            flDrive.set_velocity((fbSpeed + lrSpeed), PERCENT)
+            brDrive.set_velocity((fbSpeed - lrSpeed), PERCENT)
+            blDrive.set_velocity((fbSpeed + lrSpeed), PERCENT)
+            frDrive.spin(FORWARD)
+            flDrive.spin(FORWARD)
+            blDrive.spin(FORWARD)
+            brDrive.spin(FORWARD)
+        elif lrSpeed != 0 and fbSpeed == 0:
+            if lrSpeed > fbSpeed:                
+                lrSpeed += skim(lrSpeed)
+            frDrive.set_velocity(-lrSpeed, PERCENT)
+            flDrive.set_velocity(lrSpeed, PERCENT)
+            brDrive.set_velocity(-lrSpeed, PERCENT)
+            blDrive.set_velocity(lrSpeed, PERCENT)
             frDrive.spin(FORWARD)
             flDrive.spin(FORWARD)
             blDrive.spin(FORWARD)
             brDrive.spin(FORWARD)
         else:
-            frDrive.stop()
-            brDrive.stop()
-            blDrive.stop()
-            flDrive.stop() 
+            if(controller_1.buttonX.pressing()):
+                drivesetstop(BRAKE)
+                drivestop1()
+            else:
+                drivestop1()
         #other motions
         if controller_1.buttonA.pressing():
             #kicker start
@@ -103,6 +128,99 @@ def user_control():
         elif controller_1.buttonL1.pressing():
             #contract wings
             digitaloutH.set(False)
-        
+        if controller_1.buttonX.pressing():
+            controller_1.screen.set_cursor(1,3)
+            controller_1.screen.print("frdrive:", round(frDrive.temperature(PERCENT)))
+            controller_1.screen.set_cursor(6,3)
+            controller_1.screen.print("cata:", round(catapult.temperature(PERCENT)))
+        else:
+            controller_1.screen.clear_row(3)
+        if controller_1.buttonX.pressing():
+            arm.set_velocity(50, PERCENT)
+            arm.set_stopping(HOLD)
+            arm.spin_to_position(60, DEGREES)
+            arm.stop()
+        if controller_1.buttonY.pressing():
+            arm.set_stopping(COAST)
+            arm.stop()
+        # for testing purposes
+        if controller_1.buttonY.pressing():
+            if printed is False:
+                # print("lr turns:", encoder_s.position(TURNS))
+                print("degrees:", inertial.heading(DEGREES))
+                print("fl motor turns:", flDrive.position(TURNS))
+                # print("br motor turns:", brDrive.position(TURNS))
+                # print("bl motor turns:", blDrive.position(TURNS))
+                # print("armpos:", arm.position(DEGREES))
+                printed = True
+        printed = False
+            
+# def armSpinToPosition():
+#     arm.set_stopping(HOLD)
+#     curpos = arm.position(DEGREES)
+#     while pidArmPos(50, curpos) is not 0:
+#         # print(pidArmPos(50, curpos))                                                                            
+#         arm.set_velocity(pidArmPos(50, curpos))
+#         print(pidArmPos(50, curpos))
+#         curpos = arm.position(DEGREES)
+#         arm.spin(FORWARD)
+#         wait(50, MSEC)
+#     arm.stop()
+def skim(v):
+    # gain determines how much to skim off the top
+    if (v > 0):
+        return -(v * 0.1)
+    elif (v < 0):
+        return (v * 0.1)
+    return 0
+def drivestop1():
+    drivesetstop(COAST)
+    frDrive.stop()
+    flDrive.stop()
+    brDrive.stop()
+    blDrive.stop()   
+    wait(35, MSEC)
+    drivesetstop(BRAKE)
+def drivestop2():
+    drivesetstop(COAST)
+    frDrive.stop()
+    flDrive.stop()
+    brDrive.stop()
+    blDrive.stop()   
+    wait(45, MSEC)
+    drivesetstop(BRAKE)
+def pidArmPos(setpoint, curposition):
+    #velocity PID arm velocity
+    Kp = 0.35
+    error = setpoint - curposition
+    armpower = error*Kp
+    if armpower> 100:
+        armpower = 100
+        #makes sure turnpower not over 100% rpm
+    if 0<armpower<5:
+        armpower=5
+    elif 0>armpower>-5:
+        armpower=-5
+    if -1<error<1:
+        armpower = 0
+    return armpower
+#FUNCTIONS
+#velocities
+def drivesetstop(userinput):
+    frDrive.set_stopping(userinput)
+    flDrive.set_stopping(userinput)
+    brDrive.set_stopping(userinput)
+    blDrive.set_stopping(userinput)
+def drivesetvelocity(userinput):
+    frDrive.set_velocity(userinput,RPM)
+    flDrive.set_velocity(userinput,RPM)
+    brDrive.set_velocity(userinput,RPM)
+    blDrive.set_velocity(userinput,RPM)
+def drivesetpercent(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+
 comp = Competition(user_control, autonomous)
 pre_autonomous()
