@@ -7,14 +7,15 @@ brain=Brain()
 
 # Robot configuration code
 brDrive = Motor(Ports.PORT11, GearSetting.RATIO_6_1, False)
-mrDrive = Motor(Ports.PORT12, GearSetting.RATIO_6_1, False)
 frDrive = Motor(Ports.PORT13, GearSetting.RATIO_6_1, False)
 flDrive = Motor(Ports.PORT18, GearSetting.RATIO_6_1, True)
-mlDrive = Motor(Ports.PORT19, GearSetting.RATIO_6_1, True)
 blDrive = Motor(Ports.PORT20, GearSetting.RATIO_6_1, True)
 controller_1 = Controller(PRIMARY)
-arm = Motor(Ports.PORT1, GearSetting.RATIO_18_1, True)
+arm = Motor(Ports.PORT1, GearSetting.RATIO_36_1, True)
 inertials = Inertial(Ports.PORT14)
+mrDrive = Motor(Ports.PORT12, GearSetting.RATIO_6_1, True)
+mlDrive = Motor(Ports.PORT19, GearSetting.RATIO_6_1, False)
+
 
 # wait for rotation sensor to fully initialize
 wait(30, MSEC)
@@ -149,8 +150,9 @@ def autonomous():
     wait(500, MSEC)
 
     arm.set_velocity(60, PERCENT)
-    arm.spin_for(FORWARD, 2, TURNS)
-    wait(3, SECONDS)
+    arm.set_stopping(BRAKE)
+    arm.spin_to_position(220, DEGREES)
+    wait(1, SECONDS)
 
     #turn 225 degrees right
     while anglewrap(inertials.heading(DEGREES)) < 65:
@@ -160,8 +162,11 @@ def autonomous():
     wait(1, SECONDS)
 
     arm.spin_to_position(0, DEGREES)
-    wait(4, SECONDS)
+    wait(1, SECONDS)
 
+
+
+    """
     #push triball into goal
     goal = frDrive.position(TURNS) + 3.63
     while frDrive.position(TURNS) < goal:
@@ -177,14 +182,11 @@ def autonomous():
     fullStop()
     wait(1, SECONDS)
 
-    arm.set_stopping(COAST)
-    arm.spin_for(FORWARD, 3, TURNS)
-    arm.stop()
-
     #drive forward until touching extension bar
     goal = frDrive.position(TURNS) + 5
     while frDrive.position(TURNS) < goal:
         forward()
+    """
 
 def user_control():
     wait(1, MSEC)
