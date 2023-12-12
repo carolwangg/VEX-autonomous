@@ -6,14 +6,15 @@ import urandom
 brain=Brain()
 
 # Robot configuration code
-brDrive = Motor(Ports.PORT20, GearSetting.RATIO_6_1, False)
-frDrive = Motor(Ports.PORT18, GearSetting.RATIO_6_1, False)
-flDrive = Motor(Ports.PORT13, GearSetting.RATIO_6_1, True)
-blDrive = Motor(Ports.PORT11, GearSetting.RATIO_6_1, True)
+brDrive = Motor(Ports.PORT11, GearSetting.RATIO_6_1, False)
+mrDrive = Motor(Ports.PORT12, GearSetting.RATIO_6_1, False)
+frDrive = Motor(Ports.PORT13, GearSetting.RATIO_6_1, False)
+flDrive = Motor(Ports.PORT18, GearSetting.RATIO_6_1, True)
+mlDrive = Motor(Ports.PORT19, GearSetting.RATIO_6_1, True)
+blDrive = Motor(Ports.PORT20, GearSetting.RATIO_6_1, True)
 controller_1 = Controller(PRIMARY)
-arm = Motor(Ports.PORT12, GearSetting.RATIO_18_1, False)
+arm = Motor(Ports.PORT1, GearSetting.RATIO_18_1, True)
 inertials = Inertial(Ports.PORT14)
-
 
 # wait for rotation sensor to fully initialize
 wait(30, MSEC)
@@ -49,8 +50,7 @@ curRight = 0
 curLeft = 0
 
 #measure later
-turnmea = 0
-unit = 1.3
+unit = 3.63
 
 def pre_autonomous():
     wait(2, SECONDS)
@@ -58,37 +58,49 @@ def pre_autonomous():
 
 def fullStop():
     frDrive.stop()
+    mrDrive.stop()
     brDrive.stop()
     flDrive.stop()
+    mlDrive.stop()
     blDrive.stop()
 
 def forward():
     frDrive.spin(FORWARD)
+    mrDrive.spin(FORWARD)
     brDrive.spin(FORWARD)
     flDrive.spin(FORWARD)
+    mlDrive.spin(FORWARD)
     blDrive.spin(FORWARD)
 
 def reverse():
     frDrive.spin(REVERSE)
+    mrDrive.spin(REVERSE)
     brDrive.spin(REVERSE)
     flDrive.spin(REVERSE)
+    mlDrive.spin(REVERSE)
     blDrive.spin(REVERSE)
 
 def turnLeft():
     frDrive.spin(FORWARD)
+    mrDrive.spin(FORWARD)
     brDrive.spin(FORWARD)
     flDrive.spin(REVERSE)
+    mlDrive.spin(REVERSE)
     blDrive.spin(REVERSE)
 
 def turnRight():
     frDrive.spin(REVERSE)
+    mrDrive.spin(REVERSE)
     brDrive.spin(REVERSE)
     flDrive.spin(FORWARD)
     blDrive.spin(FORWARD)
+    mlDrive.spin(FORWARD)
 
-def anglewrapdeg(deg):
-    if deg < 10:
-        deg = 360
+def anglewrap(deg):
+    if deg > 180:
+        deg = deg - 360
+    else:
+        deg = deg + 360
     return deg
 
 def autonomous():
@@ -98,35 +110,37 @@ def autonomous():
     brain.screen.clear_screen()
     brain.screen.print("autonomous")
 
-    #callibrate
-    wait(2, SECONDS)
-
     #start at the bottom left of the field
     frDrive.set_velocity(60, PERCENT)
+    mrDrive.set_velocity(60, PERCENT)
     brDrive.set_velocity(60, PERCENT)
     flDrive.set_velocity(60, PERCENT)
+    mlDrive.set_velocity(60, PERCENT)
     blDrive.set_velocity(60, PERCENT)
     frDrive.set_stopping(BRAKE)
+    mrDrive.set_stopping(BRAKE)
     brDrive.set_stopping(BRAKE)
     flDrive.set_stopping(BRAKE)
+    mlDrive.set_stopping(BRAKE)
     blDrive.set_stopping(BRAKE)
 
     #go reverse
-
-    while frDrive.position(TURNS) > -unit - 1:
+    goal = frDrive.position(TURNS) - 3
+    while frDrive.position(TURNS) > goal:
         reverse()
 
     fullStop()
     wait(500, MSEC)
 
     #turn 90 degrees left
-    while anglewrapdeg(inertials.heading(DEGREES)) > 300:
+    while anglewrap(inertials.heading(DEGREES)) > -50:
+        print(anglewrap(inertials.heading(DEGREES)))
         turnLeft()
     
     fullStop()
     wait(500, MSEC)
 
-    goal = frDrive.position(TURNS) - unit/2
+    goal = frDrive.position(TURNS) - 0.55
     #back up to match load zone
     while frDrive.position(TURNS) > goal:
         reverse()
@@ -135,12 +149,12 @@ def autonomous():
     wait(500, MSEC)
 
     arm.set_velocity(60, PERCENT)
-    arm.spin_to_position(180, DEGREES)
+    arm.spin_for(FORWARD, 2, TURNS)
     wait(3, SECONDS)
 
-    #turn 225 degrees left
-    while inertials.heading(DEGREES) > 45:
-        turnLeft()
+    #turn 225 degrees right
+    while anglewrap(inertials.heading(DEGREES)) < 65:
+        turnRight()
     
     fullStop()
     wait(1, SECONDS)
@@ -149,7 +163,7 @@ def autonomous():
     wait(4, SECONDS)
 
     #push triball into goal
-    goal = frDrive.position(TURNS) + unit
+    goal = frDrive.position(TURNS) + 3.63
     while frDrive.position(TURNS) < goal:
         forward()
 
@@ -163,10 +177,12 @@ def autonomous():
     fullStop()
     wait(1, SECONDS)
 
-    arm.spin_to_position(180, DEGREES)
+    arm.set_stopping(COAST)
+    arm.spin_for(FORWARD, 3, TURNS)
+    arm.stop()
 
     #drive forward until touching extension bar
-    goal = frDrive.position(TURNS) + unit
+    goal = frDrive.position(TURNS) + 5
     while frDrive.position(TURNS) < goal:
         forward()
 
