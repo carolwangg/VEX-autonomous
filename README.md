@@ -6,4 +6,4 @@ Autonomous program with:
 Odometry, Motion Profiling, PID
 
 User control program with:
-Driving, catapult, expansion
+Driving, catapult, wings, intake
