@@ -1,0 +1,991 @@
+#region VEXcode Generated Robot Configuration
+from vex import *
+import urandom
+
+# Brain should be defined by default
+brain=Brain()
+
+# Robot configuration code
+brDrive = Motor(Ports.PORT20, GearSetting.RATIO_6_1, False)
+frDrive = Motor(Ports.PORT10, GearSetting.RATIO_6_1, False)
+flDrive = Motor(Ports.PORT1, GearSetting.RATIO_6_1, True)
+blDrive = Motor(Ports.PORT11, GearSetting.RATIO_6_1, True)
+controller_1 = Controller(PRIMARY)
+catapult = Motor(Ports.PORT5, GearSetting.RATIO_36_1, False)
+wings = DigitalOut(brain.three_wire_port.h)
+inertial = Inertial(Ports.PORT14)
+encoder_s = Encoder(brain.three_wire_port.c)
+mrDrive = Motor(Ports.PORT9, GearSetting.RATIO_6_1, True)
+mlDrive = Motor(Ports.PORT2, GearSetting.RATIO_6_1, False)
+intake = DigitalOut(brain.three_wire_port.a)
+bumperE = Bumper(brain.three_wire_port.e)
+hang = Motor(Ports.PORT16, GearSetting.RATIO_36_1, True)
+
+
+# wait for rotation sensor to fully initialize
+wait(30, MSEC)
+
+
+def play_vexcode_sound(sound_name):
+    # Helper to make playing sounds from the V5 in VEXcode easier and
+    # keeps the code cleaner by making it clear what is happening.
+    print("VEXPlaySound:" + sound_name)
+    wait(5, MSEC)
+
+# add a small delay to make sure we don't print in the middle of the REPL header
+wait(200, MSEC)
+# clear the console to make sure we don't have the REPL in the console
+print("\033[2J")
+
+#endregion VEXcode Generated Robot Configuration
+
+# ------------------------------------------
+# 
+# 	Project:
+#	Author:
+#	Created:
+#	Configuration:
+# 
+# ------------------------------------------
+
+# Library imports
+from vex import *
+# 47, 17, 3900
+# Begin project code
+brain.screen.set_font(FontType.MONO20)
+
+#useful to convert percentage position to pixel position
+#ex: 50*x_percent gets pixel position at 50% of screen width
+x_percent = 480/100
+y_percent = 240/100
+
+#rows and columns change when brain font size changes
+rows = 12
+columns = 48
+row_percent = rows/100
+column_percent = columns/100
+row_to_pixel = 240/rows
+column_to_pixel = 480/columns
+
+autonValue = 6
+autonDesc = ["stay still", "autonRight", "autonRightWP", "autonLeft", "autonLeftWP"]
+maxAuton = 4
+changeds = False
+ready = False
+preAuton = True
+
+#Aleena's auton
+curRight = 0
+curLeft = 0
+
+def pre_autonomous():
+    global preAuton
+    inertial.calibrate()
+    wait(2, SECONDS)
+    controller_1.screen.set_cursor(3,1)
+    controller_1.screen.print("CALIBRATED")
+    wait(2, SECONDS)
+    while preAuton:
+        chooseAuton()
+        if ready:
+            return
+def chooseAuton(): 
+    global screens, changeds, changing, autonValue, maxAuton, ready, preAuton
+    #check vars
+    if controller_1.buttonR2.pressing():
+        if changeds is False:
+            autonValue += 1
+            if autonValue > maxAuton:
+                autonValue = 0
+            changeds = True
+            ready = False
+    else:
+        changeds = False
+    if controller_1.buttonX.pressing():
+        controller_1.rumble("...")
+        inertial.calibrate()
+        wait(2, SECONDS)
+        ready = True
+    if controller_1.buttonL2.pressing():
+        controller_1.screen.clear_row(3)
+        controller_1.screen.set_cursor(3,1)
+        controller_1.screen.print(autonDesc[autonValue])
+
+        brain.screen.set_cursor(row_percent*50,column_percent*10)
+        brain.screen.print("INERTIAL:", inertial.heading())
+
+        brain.screen.set_cursor(row_percent*50,column_percent*40)
+        brain.screen.print("AUTON:", autonValue)
+        brain.screen.set_cursor(row_percent*60,column_percent*40)
+        brain.screen.print(autonDesc[autonValue])
+        
+        brain.screen.set_cursor(row_percent*50,column_percent*60)
+        brain.screen.print("READY?:", ready)
+        
+    else:
+        brain.screen.set_cursor(row_percent*50,column_percent*10)
+        brain.screen.print("INERTIAL:", inertial.heading())
+
+        brain.screen.set_cursor(row_percent*50,column_percent*40)
+        brain.screen.print("AUTON:", autonValue)
+        
+        brain.screen.set_cursor(row_percent*50,column_percent*60)
+        brain.screen.print("READY?:", ready)
+
+        controller_1.screen.set_cursor(3,1)
+        controller_1.screen.print("AUTON:", autonValue)
+        controller_1.screen.set_cursor(3,10)
+        controller_1.screen.print("READY?:", ready)
+    brain.screen.render()
+    brain.screen.set_fill_color(Color.BLACK)
+    brain.screen.draw_rectangle(-1,-1, 482, 242)
+
+def autonomous():
+    global preAuton, autonValue
+    preAuton = False
+    brain.screen.clear_screen()
+    brain.screen.print("autonomous")
+    controller_1.screen.clear_row(3)
+    if autonValue is 0:
+        wait(1, SECONDS)
+    elif autonValue is 1:
+        autonRight()
+    elif autonValue is 2:
+        autonRightWP()
+    elif autonValue is 3:
+        autonLeft()
+    elif autonValue is 4:
+        autonLeftWP()
+    elif autonValue is 5:
+        new_right_auton()
+    elif autonValue is 6:
+        new_left_auton()
+
+def autonRight():
+    #drive forward
+    setpoint1 = 7.6 #8.09
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(90, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(90, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+    
+    setpoint1 = avgturns()+1.7 #1.67
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns()-2
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    #change
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(-33, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(-33, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns() + 1.3
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    intake.set(True)
+    wait(500, MSEC)
+
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(90, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(90, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+    
+    intake.set(False)
+    wait(500, MSEC)
+
+    setpoint1 = avgturns()+2.8
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns()-2.8
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(-73, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(-73, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns()+3
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    intake.set(False)
+    wait(500, MSEC)
+
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(90, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(90, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    intake.set(True)
+    wait(500, MSEC)
+
+    setpoint1 = avgturns() + 5.6
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns()-1.5
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+def autonRightWP():
+    #drive forward
+    setpoint1 = 7.6 #8.09
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(90, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(90, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    intake.set(False)
+    wait(500, MSEC)
+    
+    setpoint1 = avgturns()+1.7 #1.67
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns()-2
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(-33, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(-33, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns() + 1.8
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    intake.set(True)
+    wait(500, MSEC)
+
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(90, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(90, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+    
+    intake.set(False)
+    wait(500, MSEC)
+
+    setpoint1 = avgturns()+2.8
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns()-2.8
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    #change
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(90, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(90, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(37, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(37, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns()-5
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    #finish-> go to touch pole
+
+def new_left_auton():
+    brain.screen.clear_screen()
+    brain.screen.print("autonomous")
+    inertial.calibrate()
+    wait(2, SECONDS)
+
+    #start from here, calibration should be in pre_autonomous
+    intake.set(True)
+    
+    setpoint1 = avgturns()+4.5
+    wingdistance = avgturns()
+    while piddrivewingopen(setpoint1, avgturns(), wingdistance) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    #wings close, pushing triball forward more
+    wings.set(False)
+    #quick turn to get ball out(pid turn will be too slow)
+    while anglewrapdeg(inertial.heading(DEGREES))<25:
+        turnrightpercent(30)
+    drivestop()
+    wait(500, MSEC)
+    #pid turn to move robot nearer to center of goal's side
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(15, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(15, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    #drive to middle of goal's side
+    setpoint1 = avgturns()+2.2
+    while piddriveunget(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower3(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+
+    #turn to face goal head on
+    while pidturnpower2(40, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(40, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    #drive hardstop against side of goal
+    driveforwardpercent(100)
+    wait(400, MSEC)
+
+    driveforwardpercent(-60)
+    wait(500, MSEC)
+
+    driveforwardpercent(60)
+    wait(500, MSEC)
+
+    #untested
+    setpoint1 = avgturns()-2.6
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower3(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(-8, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(-8, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+    setpoint1 = avgturns()-6.4
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower3(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(132, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(132, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+    setpoint1 = avgturns()+3.7 #4.1
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower3(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+def new_right_auton():
+    #right side 6 triball
+    brain.screen.clear_screen()
+    brain.screen.print("autonomous")
+    inertial.calibrate()
+    wait(2, SECONDS)
+    wings.set(True)
+    wait(500, MSEC)
+    wings.set(False)
+    wait(500, MSEC)
+
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturnpower2(158, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(158, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns()+10
+    while piddriveget(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    curpos = inertial.heading(DEGREES)
+    while pidturnpower2(270, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(270, curpos))
+        curpos = inertial.heading(DEGREES)
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns()+2.9
+    while piddriveunget(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns()-1.7
+    while piddrivepower1(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    curpos = inertial.heading(DEGREES)
+    while pidturnpower2(97, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(97, curpos))
+        curpos = inertial.heading(DEGREES)
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns()+3.7
+    while piddriveget(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+
+    curpos = inertial.heading(DEGREES)
+    while pidturnpower2(270, curpos) is not 0:                                                                            
+        turnrightpercent(pidturnpower2(270, curpos))
+        curpos = inertial.heading(DEGREES)
+        wait(50, MSEC)
+    drivestop()
+
+    setpoint1 = avgturns()+5.2
+    while piddriveunget(setpoint1, avgturns()) is not 0:
+        driveforwardpercent(piddrivepower1(setpoint1, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+    driveforwardpercent(20)
+
+def user_control():
+    global preAuton
+    preAuton = False
+
+    brain.screen.clear_screen()
+    brain.screen.print("user-control")
+    controller_1.screen.clear_row(3)
+
+    #all initial velocity/stopping/variable declarations
+    bumperTime = 0
+    bumperDown = False
+    catapult.set_velocity(100, PERCENT)
+    printed = False #for testing purposes
+    hang.set_velocity(50, PERCENT)
+    hang.set_stopping(HOLD)
+    
+    while True:
+        fbSpeed = controller_1.axis3.position()
+        lrSpeed = controller_1.axis1.position()
+        
+        #DRIVECODE
+        if fbSpeed<=5 and fbSpeed>=-5:
+            fbSpeed = 0
+        if lrSpeed<=5 and lrSpeed>=-5:
+            lrSpeed = 0
+        if lrSpeed != 0 or fbSpeed != 0:
+            # if lrSpeed > fbSpeed:                
+            #     lrSpeed += skim(fbSpeed)
+            frDrive.set_velocity((fbSpeed - lrSpeed), PERCENT)
+            flDrive.set_velocity((fbSpeed + lrSpeed), PERCENT)
+            brDrive.set_velocity((fbSpeed - lrSpeed), PERCENT)
+            blDrive.set_velocity((fbSpeed + lrSpeed), PERCENT)
+            mrDrive.set_velocity((fbSpeed - lrSpeed), PERCENT)
+            mlDrive.set_velocity((fbSpeed + lrSpeed), PERCENT)
+            frDrive.spin(FORWARD)
+            flDrive.spin(FORWARD)
+            blDrive.spin(FORWARD)
+            brDrive.spin(FORWARD)
+            mrDrive.spin(FORWARD)
+            mlDrive.spin(FORWARD)
+        elif lrSpeed != 0 and fbSpeed == 0:
+            # lrSpeed = lrSpeed*0.5
+            frDrive.set_velocity(-lrSpeed, PERCENT)
+            flDrive.set_velocity(lrSpeed, PERCENT)
+            brDrive.set_velocity(-lrSpeed, PERCENT)
+            blDrive.set_velocity(lrSpeed, PERCENT)
+            mrDrive.set_velocity(-lrSpeed, PERCENT)
+            mlDrive.set_velocity(lrSpeed, PERCENT)
+            frDrive.spin(FORWARD)
+            flDrive.spin(FORWARD)
+            blDrive.spin(FORWARD)
+            brDrive.spin(FORWARD)
+            mlDrive.spin(FORWARD)
+            mrDrive.spin(FORWARD)
+        else:
+            drivestop1()
+        
+        #OTHER MOTIONS
+        if controller_1.buttonA.pressing():
+            #kicker start
+            catapult.spin(FORWARD)
+            drivesetstop(HOLD)
+        elif controller_1.buttonB.pressing():
+            #kicker stop
+            catapult.stop()
+            drivesetstop(COAST)
+        if controller_1.buttonR2.pressing():
+            #expand wings
+            wings.set(True)
+        elif controller_1.buttonL2.pressing():
+            #contract wings
+            wings.set(False)
+        if controller_1.buttonX.pressing():
+            #sends signal for catapult to reverse until it hits bumper sensor
+            bumperDown = True
+        if bumperDown:
+            #when bumper is pressed, stop catapult 
+            if (bumperE.pressing() is 0):
+                catapult.spin(FORWARD)
+            else:
+                bumperDown = False
+                catapult.set_stopping(HOLD)
+                catapult.stop()
+                bumperTime = brain.timer.time(MSEC)
+        if (brain.timer.time(MSEC) - bumperTime)>10000:
+            catapult.set_stopping(COAST)
+        if controller_1.buttonUp.pressing():
+            hang.spin(FORWARD)
+        elif controller_1.buttonDown.pressing():
+            hang.spin(REVERSE)
+        else:
+            hang.stop()
+        
+        #FOR TESTING PURPOSES(for auton)
+        if controller_1.buttonY.pressing():
+            if printed is False:
+                print("degrees:", inertial.heading(DEGREES))
+                print("motor turns:", avgturns())
+                # print("lr turns:", encoder_s.position(TURNS))
+                # print("br motor turns:", brDrive.position(TURNS))
+                # print("bl motor turns:", blDrive.position(TURNS))
+                printed = True
+        if controller_1.buttonR1.pressing():
+            intake.set(True)
+        elif controller_1.buttonL1.pressing():
+            intake.set(False)
+        printed = False
+
+#USER-CONTROL FUNCTIONS
+def skim(v):
+    # gain determines how much to skim off the top
+    if (v > 0):
+        return -(v * 0.1)
+    elif (v < 0):
+        return (v * 0.1)
+    return 0
+def drivestop():
+    frDrive.stop()
+    flDrive.stop()
+    brDrive.stop()
+    blDrive.stop()
+    mrDrive.stop()
+    mlDrive.stop()  
+def drivestop1():
+    drivesetstop(COAST)
+    frDrive.stop()
+    flDrive.stop()
+    brDrive.stop()
+    blDrive.stop()
+    mrDrive.stop()
+    mlDrive.stop()     
+    wait(35, MSEC)
+    drivesetstop(BRAKE)
+def drivestop2():
+    drivesetstop(COAST)
+    frDrive.stop()
+    flDrive.stop()
+    brDrive.stop()
+    blDrive.stop()
+    mrDrive.stop()
+    mlDrive.stop()   
+    wait(45, MSEC)
+    drivesetstop(BRAKE)
+
+#AUTONOMOUS FUNCTIONS
+#velocities
+def drivesetstop(userinput):
+    frDrive.set_stopping(userinput)
+    flDrive.set_stopping(userinput)
+    brDrive.set_stopping(userinput)
+    blDrive.set_stopping(userinput)
+    mrDrive.set_stopping(userinput)
+    mlDrive.set_stopping(userinput)
+
+def drivesetpercent(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    mrDrive.set_velocity(userinput,PERCENT)
+    mlDrive.set_velocity(userinput,PERCENT)
+#motions
+def driveforward():
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+    mlDrive.spin(FORWARD)
+    mrDrive.spin(FORWARD)
+
+def driveforwardpercent(userinput):
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    mrDrive.set_velocity(userinput,PERCENT)
+    mlDrive.set_velocity(userinput,PERCENT)
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+    mlDrive.spin(FORWARD)
+    mrDrive.spin(FORWARD)
+
+#turning
+def turnrightpercent(userinput):
+    #negative right and positive left motor velocities, to reverse right and go fwd with left
+    frDrive.set_velocity(-userinput,PERCENT)
+    flDrive.set_velocity(userinput,PERCENT)
+    mrDrive.set_velocity(-userinput,PERCENT)
+    mlDrive.set_velocity(userinput,PERCENT)
+    brDrive.set_velocity(-userinput,PERCENT)
+    blDrive.set_velocity(userinput,PERCENT)
+    frDrive.spin(FORWARD)
+    mlDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+    mrDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+
+def turnleftpercent(userinput):
+    #negative left and positive right motor velocities, to reverse right and go fwd with left
+    frDrive.set_velocity(userinput,PERCENT)
+    flDrive.set_velocity(-userinput,PERCENT)
+    mrDrive.set_velocity(userinput,PERCENT)
+    mlDrive.set_velocity(-userinput,PERCENT)
+    brDrive.set_velocity(userinput,PERCENT)
+    blDrive.set_velocity(-userinput,PERCENT)
+    frDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    mrDrive.spin(FORWARD)
+    mlDrive.spin(FORWARD)
+
+#PIDs
+def pidturn1(setpoint, curposition, start):
+    #PID for turning(to a point)
+    #if it turns over, will correct itself
+    #when setpoint > curposition, will turn right. otherwise, turn left.
+    integer = abs(setpoint - start)
+    Kp = 1/integer*9
+    Ki = 0
+    Kd = 0
+    global integralturn
+    global lasterrorturn
+    error = setpoint - curposition
+    # integralturn += error
+    # derivative = error-lasterrorturn
+    # lasterrorturn = error
+    #2.8 is the lowest possible voltage to still move in turn
+    turnpower = error*Kp#+integralturn*Ki+derivative*Kd
+    if 0 <=turnpower < 3:
+        turnpower = 3
+    if -3 <turnpower<0:
+        turnpower = -3
+    return turnpower
+def pidturn2(setpoint, curposition):
+    global lasterrorturn
+    #velocity PID turning
+    #set right motors to reverse, left to forward
+    #if setpoint>curposition, turns right. else, turns left
+    Kp = 0.46
+    error = setpoint - curposition
+    turnpower = error*Kp
+    if turnpower> 100:
+        #makes sure turnpower not over 100% rpm
+        turnpower = 100
+    if 0<turnpower<2:
+        turnpower=2
+    elif 0>turnpower>-2:
+        turnpower=-2
+    if -1<error<1:
+        turnpower = 0
+    return turnpower
+def pidturn3(setpoint, curposition):
+    global lasterrorturn
+    #velocity PID turning
+    #set right motors to reverse, left to forward
+    #if setpoint>curposition, turns right. else, turns left
+    Kp = 0.7
+    error = setpoint - curposition
+    turnpower = error*Kp
+    if turnpower> 100:
+        #makes sure turnpower not over 100% rpm
+        turnpower = 100
+    if 0<turnpower<5:
+        turnpower=5
+    elif 0>turnpower>-5:
+        turnpower=-5
+    if -1<error<1:
+        turnpower = 0
+    return turnpower
+
+def pidforward(setpoint, curposition):
+    #velocity
+    #go to motor.turns value inputted as "setpoint"
+    #if setpoint > curposition, drives forward. If not, reverses.
+    Kp = 39 #tuning notes: 38 for smooth stop, 40 for fast stop
+    error = setpoint - curposition
+    drivepower = error*Kp
+    if drivepower> 100 or drivepower < -100:
+        #makes sure drivepower not over 100% rpm
+        if drivepower > 0:
+            coeff = 1
+        else:
+            coeff = -1
+        drivepower = 100*coeff
+    if 0 <=drivepower < 9:
+        drivepower = 9
+    if -9 <drivepower <0:
+        drivepower = -9
+    if -0.05<error<0.05:
+        drivepower=0
+    return drivepower
+def pidforwardslow(setpoint, curposition):
+    #same as piddrive() but slower
+    Kp = 40
+    error = setpoint - curposition
+    drivepower = error*Kp
+    if drivepower> 60 or drivepower < -60:
+        #makes sure drivepower not over 100% rpm
+        if drivepower > 0:
+            coeff = 1
+        else:
+            coeff = -1
+        drivepower = 60*coeff
+    if 0 <=drivepower < 9:
+        drivepower = 9
+    if -9 <drivepower <0:
+        drivepower = -9
+    if -0.05<error<0.05:
+        drivepower=0
+    return drivepower
+def piddriveget(setpoint, curposition):
+    #piddrive() but intake turns on while driving
+    Kp = 39 
+    error = setpoint - curposition
+    drivepower = error*Kp
+    if drivepower> 100 or drivepower < -100:
+        if drivepower > 0:
+            coeff = 1
+        else:
+            coeff = -1
+        drivepower = 100*coeff
+    if 0 <=drivepower < 9:
+        drivepower = 9
+    if -9 <drivepower <0:
+        drivepower = -9
+    if -0.05<error<0.05:
+        drivepower=0
+    if -0.1<error<0.1:
+        intake.set(True)
+    return drivepower
+def piddriveunget(setpoint, curposition):
+    #piddrive() but intake turns off while driving
+    Kp = 39 
+    error = setpoint - curposition
+    drivepower = error*Kp
+    if drivepower> 100 or drivepower < -100:
+        if drivepower > 0:
+            coeff = 1
+        else:
+            coeff = -1
+        drivepower = 100*coeff
+    if 0 <=drivepower < 9:
+        drivepower = 9
+    if -9 <drivepower <0:
+        drivepower = -9
+    if -0.05<error<0.05:
+        drivepower=0
+    if -1<error<1:
+        intake.set(False)
+    return drivepower
+def piddrivewingopen(setpoint, curposition, wingdistance):
+    #piddrive() but wings open while driving
+    error = setpoint - curposition
+    drivepower = error*Kp
+    if drivepower> 100 or drivepower < -100:
+        if drivepower > 0:
+            coeff = 1
+        else:
+            coeff = -1
+        drivepower = 100*coeff
+    if 0 <=drivepower < 9:
+        drivepower = 9
+    if -9 <drivepower <0:
+        drivepower = -9
+    if -0.05<error<0.05:
+        drivepower=0
+    if abs(error)<(setpoint-wingdistance):
+        wings.set(True)
+    return drivepower
+def piddrivewingclose(setpoint, curposition, wingdistance):
+    #piddrive() but wings close while driving
+    Kp = 39 
+    error = setpoint - curposition
+    drivepower = error*Kp
+    if drivepower> 100 or drivepower < -100:
+        if drivepower > 0:
+            coeff = 1
+        else:
+            coeff = -1
+        drivepower = 100*coeff
+    if 0 <=drivepower < 9:
+        drivepower = 9
+    if -9 <drivepower <0:
+        drivepower = -9
+    if -0.05<error<0.05:
+        drivepower=0
+    if abs(error)<(setpoint-wingdistance):
+        wings.set(False)
+    return drivepower
+
+#SKILLS FUNCTIONS
+def avgturns():
+    avg = (frDrive.position(TURNS) + flDrive.position(TURNS) + brDrive.position(TURNS) + blDrive.position(TURNS))/4
+    return avg
+def anglewrapdeg(deg):
+    #converts angles above 180 to a negative angle under 180 and vice versa
+    if(deg>180):
+        deg = deg - 360
+    # elif(deg<-180):
+    #     deg = deg + 360
+    return deg
+
+#AUTONOMOUS
+def drivetodistance(setpoint)
+    #wrapping the while loop that uses piddrive() into a function for easier programming
+    setpoint += avgturns()
+    while piddrive(setpoint, avgturns()) is not 0:
+        driveforwardpercent(piddrive(setpoint, avgturns()))
+        wait(50, MSEC)
+    drivestop()
+def turnwrapped(goalAngle)
+    curpos = anglewrapdeg(inertial.heading(DEGREES))
+    while pidturn(goalAngle, curpos) is not 0:                                                                            
+        turnrightpercent(pidturn(goalAngle, curpos))
+        curpos = anglewrapdeg(inertial.heading(DEGREES))
+        wait(50, MSEC)
+    drivestop()
+def turnunwrapped(goalAngle)
+    curpos = inertial.heading(DEGREES)
+    while pidturn(goalAngle, curpos) is not 0:                                                                            
+        turnrightpercent(pidturn(goalAngle, curpos))
+        curpos = inertial.heading(DEGREES)
+        wait(50, MSEC)
+    drivestop()
+
+#Aleena
+def fullStop():
+    frDrive.stop()
+    mrDrive.stop()
+    brDrive.stop()
+    flDrive.stop()
+    mlDrive.stop()
+    blDrive.stop()
+
+def forward():
+    frDrive.spin(FORWARD)
+    mrDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+    flDrive.spin(FORWARD)
+    mlDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+
+def reverse():
+    frDrive.spin(REVERSE)
+    mrDrive.spin(REVERSE)
+    brDrive.spin(REVERSE)
+    flDrive.spin(REVERSE)
+    mlDrive.spin(REVERSE)
+    blDrive.spin(REVERSE)
+
+def turnLeft():
+    frDrive.spin(FORWARD)
+    mrDrive.spin(FORWARD)
+    brDrive.spin(FORWARD)
+    flDrive.spin(REVERSE)
+    mlDrive.spin(REVERSE)
+    blDrive.spin(REVERSE)
+
+def turnRight():
+    frDrive.spin(REVERSE)
+    mrDrive.spin(REVERSE)
+    brDrive.spin(REVERSE)
+    flDrive.spin(FORWARD)
+    blDrive.spin(FORWARD)
+    mlDrive.spin(FORWARD)
+
+def anglewrap(deg):
+    if deg > 180:
+        deg = deg - 360
+    else:
+        deg = deg + 360
+    return deg
+
+comp = Competition(user_control, autonomous)
+pre_autonomous()
